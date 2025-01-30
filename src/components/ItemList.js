@@ -108,6 +108,7 @@ const ItemList = () => {
     { field: 'name', headerName: 'Name', width: 150 },
     { field: 'description', headerName: 'Description', width: 250 },
     { field: 'price', headerName: 'Price (₹)', width: 80 },
+    { field: 'discount', headerName: 'Discount', width: 80 },
     { field: 'category', headerName: 'Category', width: 200 },
     { field: 'stock', headerName: 'Stock', width: 70 },
     {
@@ -209,6 +210,14 @@ const ItemList = () => {
                 fullWidth
                 value={editItem?.price || ''}
                 onChange={(e) => setEditItem({ ...editItem, price: e.target.value })}
+                margin="normal"
+              />
+              <TextField
+                label="Discount"
+                type="number"
+                fullWidth
+                value={editItem?.discount || ''}
+                onChange={(e) => setEditItem({ ...editItem, discount: e.target.value })}
                 margin="normal"
               />
               <FormControl fullWidth margin="normal">

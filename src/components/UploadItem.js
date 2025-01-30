@@ -12,6 +12,7 @@ const UploadItem = () => {
     name: Yup.string().required('Item name is required'),
     description: Yup.string().required('Description is required'),
     price: Yup.number().required('Price is required').positive('Price must be positive'),
+    dicount: Yup.number().required('Discount is required').positive('discount must be positive'),
     category: Yup.string().required('Category is required'),
     stock: Yup.number().required('Stock is required').integer('Stock must be a whole number'),
     imageUrl: Yup.string().required('Image URL is required').url('Invalid URL format'),
@@ -106,6 +107,21 @@ const UploadItem = () => {
                   type="number"
                   fullWidth
                   onChange={(e) => setFieldValue('price', e.target.value)}
+                  error={touched.price && Boolean(errors.price)}
+                  helperText={touched.price && errors.price}
+                  variant="outlined"
+                  InputProps={{
+                    style: { backgroundColor: '#F0F0F0', color: '#333' },
+                  }}
+                />
+              </Box>
+              <Box marginBottom={1} bgcolor="#435D74" padding={1} borderRadius="8px">
+                <TextField
+                  label="Discount"
+                  name="discount"
+                  type="number"
+                  fullWidth
+                  onChange={(e) => setFieldValue('discount', e.target.value)}
                   error={touched.price && Boolean(errors.price)}
                   helperText={touched.price && errors.price}
                   variant="outlined"
