@@ -23,7 +23,6 @@ function DashboardCard({ title, value, bgColor }) {
           fontSize: '1.5rem',
           marginTop: '100px',
           textAlign: 'center',
-
         }}
       >
         {title}
@@ -34,7 +33,6 @@ function DashboardCard({ title, value, bgColor }) {
           fontWeight: 'bold',
           marginBottom: '20px',
           textAlign: 'center',
-
         }}
       >
         {value}
@@ -45,9 +43,10 @@ function DashboardCard({ title, value, bgColor }) {
 
 function Dashboard() {
   const [data, setData] = useState({
-    todaysOrders: 0,
+    totalOrders: 0,
+    todayOrder: 0,
     todayOrderDeliver: 0,
-    appUsers: 0,  
+    appUsers: 0,
     totalOrderDeliver: 0,
     totalProducts: 0,
     pendingOrders: 0,
@@ -90,10 +89,65 @@ function Dashboard() {
       }
     };
 
-    fetchTotalProducts();
-    fetchAppUsers();  // Call to fetch app users
+    // Fetch the total number of orders and their statuses
+    const fetchTotalOrders = async () => {
+      try {
+        const response = await fetch('https://sastabazar.onrender.com/api/delivery/orders');
+        const result = await response.json();
+        console.log('Fetched orders:', result); // Debug log for orders
+    
+        const orders = result.data; // Assuming orders are inside the 'data' field
+    
+        // Get today's date for comparison
+        const today = new Date().toISOString().split('T')[0]; // Format: 'YYYY-MM-DD'
+    
+        // Calculate total orders
+        const totalOrders = orders.length;
+    
+        // Count pending orders
+        const pendingOrders = orders.filter(order => order.status === 'pending').length;
 
-  }, []);
+        const todayOrder = orders.filter(order => {
+          const deliveryDate = order.updatedAt ? new Date(order.updatedAt).toISOString().split('T')[0] : null;  // Handle invalid date
+          return deliveryDate === today; // Return the condition instead of just checking it
+        }).length;
+        
+    
+        // Count today's delivered orders
+        const todayOrderDeliver = orders.filter(order => {
+          const deliveryDate = order.updatedAt ? new Date(order.updatedAt).toISOString().split('T')[0] : null;  // Handle invalid date
+          return order.status === 'delivered' && deliveryDate === today; // Compare just the date part
+        }).length;
+    
+        // Count total delivered orders
+        const totalOrderDeliver = orders.filter(order => order.status === 'delivered').length;
+    
+        // Debug the counts to verify they are correct
+        console.log('Total Orders:', totalOrders);
+        console.log('Pending Orders:', pendingOrders);
+        console.log('Today\'s Delivered Orders:', todayOrderDeliver);
+        console.log('Total Delivered Orders:', totalOrderDeliver);
+    
+        // Update the state with the fetched data
+        setData((prevData) => ({
+          ...prevData,
+          totalOrders,
+          todayOrder,
+          pendingOrders,
+          todayOrderDeliver,
+          totalOrderDeliver,
+        }));
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+      }
+    };
+    
+
+    fetchTotalProducts();
+    fetchAppUsers();
+    fetchTotalOrders();
+
+  }, []); // Dependency array ensures this effect runs only once
 
   return (
     <div
@@ -113,7 +167,7 @@ function Dashboard() {
           gap: '15px',
         }}
       >
-        <DashboardCard title="Today's Orders" value={data.todaysOrders} bgColor="#4CAF50" />
+        <DashboardCard title="Today's Orders" value={data.todayOrder} bgColor="#4CAF50" />
         <DashboardCard title="All Products" value={data.totalProducts} bgColor="#2196F3" />
         <DashboardCard title="Today's Order Deliver" value={data.todayOrderDeliver} bgColor="#FFC107" />
         <DashboardCard title="All App Users" value={data.appUsers} bgColor="#607D8B" />
