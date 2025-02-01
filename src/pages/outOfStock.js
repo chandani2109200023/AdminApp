@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogTitle,
   TextField,
-  InputLabel,
   Button,
   CardContent,
   FormControl,
@@ -20,6 +19,7 @@ import { DataGrid } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
+// Check if the image URL is valid
 const isValidImageUrl = (url) => {
   return (
     url &&
@@ -28,14 +28,11 @@ const isValidImageUrl = (url) => {
   );
 };
 
-const ItemList = () => {
-  const [items, setItems] = useState([]);
+const OutOfStockProducts = () => {
   const [filteredItems, setFilteredItems] = useState([]);
+  const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [stockFilter, setStockFilter] = useState('all');
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -43,8 +40,11 @@ const ItemList = () => {
         const response = await fetch('https://sastabazar.onrender.com/api/user/products');
         const data = await response.json();
         console.log('Fetched items:', data);
-        setItems(data);
-        setFilteredItems(data); // Initially, set filteredItems to all items
+
+        // Filter only out-of-stock items
+        const outOfStockItems = data.filter(item => item.stock === 0);
+        setItems(data); // Store all items
+        setFilteredItems(outOfStockItems); // Filter out-of-stock items
       } catch (error) {
         console.error('Error fetching items:', error);
       }
@@ -52,34 +52,7 @@ const ItemList = () => {
     fetchItems();
   }, []);
 
-  // Function to filter items based on search, category, and stock
-  const filterItems = () => {
-    let filtered = items;
-
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(item =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Filter by category
-    if (selectedCategory) {
-      filtered = filtered.filter(item => item.category === selectedCategory);
-    }
-
-    // Filter by stock (out of stock)
-    if (stockFilter === 'outOfStock') {
-      filtered = filtered.filter(item => item.stock === 0);
-    }
-
-    setFilteredItems(filtered);
-  };
-
-  useEffect(() => {
-    filterItems(); // Re-run filter whenever any of the filter criteria change
-  }, [searchTerm, selectedCategory, stockFilter, items]);
-
+  // Handle delete action for an item
   const handleDelete = async (id) => {
     const token = localStorage.getItem('authToken');
     try {
@@ -90,6 +63,7 @@ const ItemList = () => {
 
       if (response.ok) {
         setItems(items.filter((item) => item._id !== id));
+        setFilteredItems(filteredItems.filter((item) => item._id !== id)); // Update filtered items as well
       } else {
         console.error('Error deleting item');
       }
@@ -98,23 +72,29 @@ const ItemList = () => {
     }
   };
 
+  // Handle edit action
   const handleEdit = (id) => {
     const itemToEdit = items.find((item) => item._id === id);
     setEditItem(itemToEdit);
     setOpen(true);
   };
 
+  // Close the edit dialog
   const handleClose = () => {
     setOpen(false);
     setEditItem(null);
   };
 
+  // Handle form submission to update item details
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    // Validate image URL
     if (editItem?.imageUrl && !isValidImageUrl(editItem.imageUrl)) {
       alert('Please provide a valid image URL.');
       return;
     }
+
     const token = localStorage.getItem('authToken');
     try {
       const response = await fetch(`https://sastabazar.onrender.com/api/admin/products/${editItem._id}`, {
@@ -127,7 +107,9 @@ const ItemList = () => {
       });
 
       if (response.ok) {
+        // Update the edited item in the list
         setItems(items.map((item) => (item._id === editItem._id ? { ...editItem } : item)));
+        setFilteredItems(filteredItems.map((item) => (item._id === editItem._id ? { ...editItem } : item)));
         handleClose();
       } else {
         alert('Error updating item, please try again.');
@@ -196,7 +178,7 @@ const ItemList = () => {
         backgroundColor: '#2C3E50',
         borderRadius: 2,
         width: '100%',
-        height: '100vh', // Ensures full screen height
+        height: '100vh',
         flexDirection: 'column',
       }}
     >
@@ -207,87 +189,22 @@ const ItemList = () => {
           sx={{
             color: '#F1C40F',
             textAlign: 'center',
-            width: '100%', // Ensures it takes full width
+            width: '100%',
             display: 'flex',
-            justifyContent: 'center', // Centers content horizontally
+            justifyContent: 'center',
           }}
         >
-          Grocery Items
+          Out Of Stock Products
         </Typography>
 
-        {/* Filter Section */}
-        <Box sx={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
-          <TextField
-            label="Search Products"
-            variant="outlined"
-            fullWidth
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{
-              backgroundColor: '#f5f5f5', // Lighter background color
-            }}
-          />
-
-          <FormControl fullWidth sx={{ backgroundColor: '#f5f5f5' }}>
-            <InputLabel>Category</InputLabel>
-            <Select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              label="Category"
-              sx={{
-                backgroundColor: '#f5f5f5', // Lighter background color
-              }}
-            >
-              <MenuItem value="">All Categories</MenuItem>
-              <MenuItem value="Atta, Rice & Dal">Atta, Rice & Dal</MenuItem>
-              <MenuItem value="Bakery & Biscuits">Bakery & Biscuits</MenuItem>
-              <MenuItem value="Chicken, Meat & Fish">Chicken, Meat & Fish</MenuItem>
-              <MenuItem value="Dairy, Bread & Eggs">Dairy, Bread & Eggs</MenuItem>
-              <MenuItem value="Dry Fruits">Dry Fruits</MenuItem>
-              <MenuItem value="Oil, Ghee & Masala">Oil, Ghee & Masala</MenuItem>
-              <MenuItem value="Vegetables & Fruits">Vegetables & Fruits</MenuItem>
-              <MenuItem value="Air Fresheners">Air Fresheners</MenuItem>
-              <MenuItem value="Cleaning Supplies">Cleaning Supplies</MenuItem>
-              <MenuItem value="Baby Care">Baby Care</MenuItem>
-              <MenuItem value="Pooja Essentials">Pooja Essentials</MenuItem>
-              <MenuItem value="Personal Care">Personal Care</MenuItem>
-              <MenuItem value="Laundry Care">Laundry Care</MenuItem>
-              <MenuItem value="Paper Products">Paper Products</MenuItem>
-              <MenuItem value="Toiletries">Toiletries</MenuItem>
-              <MenuItem value="Chips & Namkeen">Chips & Namkeen</MenuItem>
-              <MenuItem value="Drink & Juices">Drink & Juices</MenuItem>
-              <MenuItem value="Ice Creams & More">Ice Creams & More</MenuItem>
-              <MenuItem value="Instant Food">Instant Food</MenuItem>
-              <MenuItem value="Sauces & Spreads">Sauces & Spreads</MenuItem>
-              <MenuItem value="Sweets & Chocolates">Sweets & Chocolates</MenuItem>
-              <MenuItem value="Tea, Coffee & Milk Drinks">Tea, Coffee & Milk Drinks</MenuItem>
-            </Select>
-          </FormControl>
-
-          <FormControl fullWidth sx={{ backgroundColor: '#f5f5f5' }}>
-            <InputLabel>Stock</InputLabel>
-            <Select
-              value={stockFilter}
-              onChange={(e) => setStockFilter(e.target.value)}
-              label="Stock"
-              sx={{
-                backgroundColor: '#f5f5f5', // Lighter background color
-              }}
-            >
-              <MenuItem value="all">All Products</MenuItem>
-              <MenuItem value="outOfStock">Out of Stock</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
-
-        {/* Display the filtered products */}
+        {/* Display the filtered out-of-stock products */}
         {filteredItems && filteredItems.length > 0 ? (
           <Box sx={{ height: 500, width: '100%' }}>
             <DataGrid
               rows={filteredItems}
               columns={columns}
               pageSize={5}
-              getRowId={(row) => row._id} // Ensure _id exists in the response
+              getRowId={(row) => row._id}
               sx={{
                 backgroundColor: '#90B0CA',
                 color: '#1C2833',
@@ -298,11 +215,11 @@ const ItemList = () => {
           </Box>
         ) : (
           <Typography variant="h6" color="textSecondary" sx={{ textAlign: 'center' }}>
-            No products available
+            No out-of-stock products available
           </Typography>
         )}
 
-        {/* Edit Item Dialog */}
+        {/* Edit Dialog */}
         <Dialog open={open} onClose={handleClose}>
           <DialogTitle>Edit Item</DialogTitle>
           <DialogContent>
@@ -350,7 +267,26 @@ const ItemList = () => {
                   </MenuItem>
                   <MenuItem value="Atta, Rice & Dal">Atta, Rice & Dal</MenuItem>
                   <MenuItem value="Bakery & Biscuits">Bakery & Biscuits</MenuItem>
-                  {/* Add more categories as needed */}
+                  <MenuItem value="Chicken, Meat & Fish">Chicken, Meat & Fish</MenuItem>
+                  <MenuItem value="Dairy, Bread & Eggs">Dairy, Bread & Eggs</MenuItem>
+                  <MenuItem value="Dry Fruits">Dry Fruits</MenuItem>
+                  <MenuItem value="Oil, Ghee & Masala">Oil, Ghee & Masala</MenuItem>
+                  <MenuItem value="Vegetables & Fruits">Vegetables & Fruits</MenuItem>
+                  <MenuItem value="Air Fresheners">Air Fresheners</MenuItem>
+                  <MenuItem value="Cleaning Supplies">Cleaning Supplies</MenuItem>
+                  <MenuItem value="Baby Care">Baby Care</MenuItem>
+                  <MenuItem value="Pooja Essentials">Pooja Essentials</MenuItem>
+                  <MenuItem value="Personal Care">Personal Care</MenuItem>
+                  <MenuItem value="Laundry Care">Laundry Care</MenuItem>
+                  <MenuItem value="Paper Products">Paper Products</MenuItem>
+                  <MenuItem value="Toiletries">Toiletries</MenuItem>
+                  <MenuItem value="Chips & Namkeen">Chips & Namkeen</MenuItem>
+                  <MenuItem value="Drink & Juices">Drink & Juices</MenuItem>
+                  <MenuItem value="Ice Creams & More">Ice Creams & More</MenuItem>
+                  <MenuItem value="Instant Food">Instant Food</MenuItem>
+                  <MenuItem value="Sauces & Spreads">Sauces & Spreads</MenuItem>
+                  <MenuItem value="Sweets & Chocolates">Sweets & Chocolates</MenuItem>
+                  <MenuItem value="Tea, Coffee & Milk Drinks">Tea, Coffee & Milk Drinks</MenuItem>
                 </Select>
               </FormControl>
               <TextField
@@ -394,12 +330,8 @@ const ItemList = () => {
                 </Select>
               </FormControl>
               <DialogActions>
-                <Button onClick={handleClose} sx={{ color: '#E74C3C' }}>
-                  Cancel
-                </Button>
-                <Button type="submit" sx={{ color: '#2ECC71' }}>
-                  Save
-                </Button>
+                <Button onClick={handleClose} sx={{ color: '#E74C3C' }}>Cancel</Button>
+                <Button type="submit" sx={{ color: '#2ECC71' }}>Save</Button>
               </DialogActions>
             </form>
           </DialogContent>
@@ -409,4 +341,4 @@ const ItemList = () => {
   );
 };
 
-export default ItemList;
+export default OutOfStockProducts;
