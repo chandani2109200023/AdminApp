@@ -350,6 +350,26 @@ const ItemList = () => {
                   </MenuItem>
                   <MenuItem value="Atta, Rice & Dal">Atta, Rice & Dal</MenuItem>
                   <MenuItem value="Bakery & Biscuits">Bakery & Biscuits</MenuItem>
+                  <MenuItem value="Chicken, Meat & Fish">Chicken, Meat & Fish</MenuItem>
+              <MenuItem value="Dairy, Bread & Eggs">Dairy, Bread & Eggs</MenuItem>
+              <MenuItem value="Dry Fruits">Dry Fruits</MenuItem>
+              <MenuItem value="Oil, Ghee & Masala">Oil, Ghee & Masala</MenuItem>
+              <MenuItem value="Vegetables & Fruits">Vegetables & Fruits</MenuItem>
+              <MenuItem value="Air Fresheners">Air Fresheners</MenuItem>
+              <MenuItem value="Cleaning Supplies">Cleaning Supplies</MenuItem>
+              <MenuItem value="Baby Care">Baby Care</MenuItem>
+              <MenuItem value="Pooja Essentials">Pooja Essentials</MenuItem>
+              <MenuItem value="Personal Care">Personal Care</MenuItem>
+              <MenuItem value="Laundry Care">Laundry Care</MenuItem>
+              <MenuItem value="Paper Products">Paper Products</MenuItem>
+              <MenuItem value="Toiletries">Toiletries</MenuItem>
+              <MenuItem value="Chips & Namkeen">Chips & Namkeen</MenuItem>
+              <MenuItem value="Drink & Juices">Drink & Juices</MenuItem>
+              <MenuItem value="Ice Creams & More">Ice Creams & More</MenuItem>
+              <MenuItem value="Instant Food">Instant Food</MenuItem>
+              <MenuItem value="Sauces & Spreads">Sauces & Spreads</MenuItem>
+              <MenuItem value="Sweets & Chocolates">Sweets & Chocolates</MenuItem>
+              <MenuItem value="Tea, Coffee & Milk Drinks">Tea, Coffee & Milk Drinks</MenuItem>
                   {/* Add more categories as needed */}
                 </Select>
               </FormControl>
