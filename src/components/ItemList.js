@@ -40,58 +40,69 @@ const ItemList = () => {
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const response = await fetch('https://sastabazar.onrender.com/api/user/products');
+        const response = await fetch('https://api.agrivemart.com/api/user/products');
         const data = await response.json();
-        console.log('Fetched items:', data);
-        setItems(data);
-        setFilteredItems(data); // Initially, set filteredItems to all items
+
+        // Flatten each variant into its own row with reference to the parent product
+        const flattened = data.flatMap((product) => {
+          return product.variants.map((variant, index) => ({
+            ...variant,
+            _id: `${product._id}_${index}`, // Unique ID for DataGrid
+            productId: product._id, // Keep original product ID for edit/delete
+            name: product.name,
+            description: product.description,
+            category: product.category,
+            brand: product.brand,
+          }));
+        });
+
+        setItems(flattened);
+        setFilteredItems(flattened);
       } catch (error) {
         console.error('Error fetching items:', error);
       }
     };
+
     fetchItems();
   }, []);
-
   // Function to filter items based on search, category, and stock
   const filterItems = () => {
     let filtered = items;
-
     // Filter by search term
     if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
       filtered = filtered.filter(item =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase())
+        item.name.toLowerCase().includes(lowerSearch) ||
+        item.brand?.toLowerCase().includes(lowerSearch)
       );
     }
-
     // Filter by category
     if (selectedCategory) {
       filtered = filtered.filter(item => item.category === selectedCategory);
     }
-
     // Filter by stock (out of stock)
     if (stockFilter === 'outOfStock') {
       filtered = filtered.filter(item => item.stock === 0);
     }
-
     setFilteredItems(filtered);
   };
-
   useEffect(() => {
     filterItems(); // Re-run filter whenever any of the filter criteria change
   }, [searchTerm, selectedCategory, stockFilter, items]);
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (productId) => {
     const token = localStorage.getItem('authToken');
     try {
-      const response = await fetch(`https://sastabazar.onrender.com/api/admin/products/${id}`, {
+      const response = await fetch(`https://api.agrivemart.com/api/admin/products/${productId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.ok) {
-        setItems(items.filter((item) => item._id !== id));
+        setItems((prevItems) => prevItems.filter((item) => item.productId !== productId));
       } else {
-        console.error('Error deleting item');
+        const error = await response.text();
+        console.error('Delete failed:', response.status, error);
       }
     } catch (error) {
       console.error('Error deleting item:', error);
@@ -111,28 +122,54 @@ const ItemList = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
     if (editItem?.imageUrl && !isValidImageUrl(editItem.imageUrl)) {
       alert('Please provide a valid image URL.');
       return;
     }
+
     const token = localStorage.getItem('authToken');
+
+    const updatedProduct = {
+      name: editItem.name,
+      description: editItem.description,
+      category: editItem.category,
+      brand: editItem.brand,
+      variants: [
+        {
+          price: editItem.price,
+          discount: editItem.discount,
+          stock: editItem.stock,
+          quantity: editItem.quantity,
+          unit: editItem.unit,
+          imageUrl: editItem.imageUrl,
+        },
+      ],
+    };
+
     try {
-      const response = await fetch(`https://sastabazar.onrender.com/api/admin/products/${editItem._id}`, {
+      const response = await fetch(`https://api.agrivemart.com/api/admin/products/${editItem.productId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(editItem),
+        body: JSON.stringify(updatedProduct),
       });
 
       if (response.ok) {
-        setItems(items.map((item) => (item._id === editItem._id ? { ...editItem } : item)));
+        const updatedItems = items.map((item) =>
+          item._id === editItem._id ? { ...item, ...editItem } : item
+        );
+        setItems(updatedItems);
         handleClose();
       } else {
+        const errorData = await response.json();
+        console.error('Update error:', errorData);
         alert('Error updating item, please try again.');
       }
     } catch (error) {
+      console.error('Network error:', error);
       alert('Error updating item, please try again.');
     }
   };
@@ -140,6 +177,7 @@ const ItemList = () => {
   const columns = [
     { field: '_id', headerName: 'ID', width: 250 },
     { field: 'name', headerName: 'Name', width: 150 },
+    { field: 'brand', headerName: 'Brand', width: 150 },
     { field: 'description', headerName: 'Description', width: 250 },
     { field: 'price', headerName: 'Price (₹)', width: 80 },
     { field: 'discount', headerName: 'Discount', width: 80 },
@@ -179,7 +217,7 @@ const ItemList = () => {
           <IconButton onClick={() => handleEdit(params.row._id)} color="primary">
             <EditIcon />
           </IconButton>
-          <IconButton onClick={() => handleDelete(params.row._id)} color="error">
+          <IconButton onClick={() => handleDelete(params.row.productId)} color="error">
             <DeleteIcon />
           </IconButton>
         </>
@@ -351,25 +389,25 @@ const ItemList = () => {
                   <MenuItem value="Atta, Rice & Dal">Atta, Rice & Dal</MenuItem>
                   <MenuItem value="Bakery & Biscuits">Bakery & Biscuits</MenuItem>
                   <MenuItem value="Chicken, Meat & Fish">Chicken, Meat & Fish</MenuItem>
-              <MenuItem value="Dairy, Bread & Eggs">Dairy, Bread & Eggs</MenuItem>
-              <MenuItem value="Dry Fruits">Dry Fruits</MenuItem>
-              <MenuItem value="Oil, Ghee & Masala">Oil, Ghee & Masala</MenuItem>
-              <MenuItem value="Vegetables & Fruits">Vegetables & Fruits</MenuItem>
-              <MenuItem value="Air Fresheners">Air Fresheners</MenuItem>
-              <MenuItem value="Cleaning Supplies">Cleaning Supplies</MenuItem>
-              <MenuItem value="Baby Care">Baby Care</MenuItem>
-              <MenuItem value="Pooja Essentials">Pooja Essentials</MenuItem>
-              <MenuItem value="Personal Care">Personal Care</MenuItem>
-              <MenuItem value="Laundry Care">Laundry Care</MenuItem>
-              <MenuItem value="Paper Products">Paper Products</MenuItem>
-              <MenuItem value="Toiletries">Toiletries</MenuItem>
-              <MenuItem value="Chips & Namkeen">Chips & Namkeen</MenuItem>
-              <MenuItem value="Drink & Juices">Drink & Juices</MenuItem>
-              <MenuItem value="Ice Creams & More">Ice Creams & More</MenuItem>
-              <MenuItem value="Instant Food">Instant Food</MenuItem>
-              <MenuItem value="Sauces & Spreads">Sauces & Spreads</MenuItem>
-              <MenuItem value="Sweets & Chocolates">Sweets & Chocolates</MenuItem>
-              <MenuItem value="Tea, Coffee & Milk Drinks">Tea, Coffee & Milk Drinks</MenuItem>
+                  <MenuItem value="Dairy, Bread & Eggs">Dairy, Bread & Eggs</MenuItem>
+                  <MenuItem value="Dry Fruits">Dry Fruits</MenuItem>
+                  <MenuItem value="Oil, Ghee & Masala">Oil, Ghee & Masala</MenuItem>
+                  <MenuItem value="Vegetables & Fruits">Vegetables & Fruits</MenuItem>
+                  <MenuItem value="Air Fresheners">Air Fresheners</MenuItem>
+                  <MenuItem value="Cleaning Supplies">Cleaning Supplies</MenuItem>
+                  <MenuItem value="Baby Care">Baby Care</MenuItem>
+                  <MenuItem value="Pooja Essentials">Pooja Essentials</MenuItem>
+                  <MenuItem value="Personal Care">Personal Care</MenuItem>
+                  <MenuItem value="Laundry Care">Laundry Care</MenuItem>
+                  <MenuItem value="Paper Products">Paper Products</MenuItem>
+                  <MenuItem value="Toiletries">Toiletries</MenuItem>
+                  <MenuItem value="Chips & Namkeen">Chips & Namkeen</MenuItem>
+                  <MenuItem value="Drink & Juices">Drink & Juices</MenuItem>
+                  <MenuItem value="Ice Creams & More">Ice Creams & More</MenuItem>
+                  <MenuItem value="Instant Food">Instant Food</MenuItem>
+                  <MenuItem value="Sauces & Spreads">Sauces & Spreads</MenuItem>
+                  <MenuItem value="Sweets & Chocolates">Sweets & Chocolates</MenuItem>
+                  <MenuItem value="Tea, Coffee & Milk Drinks">Tea, Coffee & Milk Drinks</MenuItem>
                   {/* Add more categories as needed */}
                 </Select>
               </FormControl>

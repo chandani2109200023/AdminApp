@@ -8,7 +8,7 @@ function TodayOrderDeliverPage() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await fetch('https://sastabazar.onrender.com/api/delivery/orders');
+        const response = await fetch('https://api.agrivemart.com/api/delivery/orders');
         const data = await response.json();
 
         // Get today's date

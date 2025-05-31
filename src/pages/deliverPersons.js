@@ -8,7 +8,7 @@ const DeliveryPersons = () => {
     useEffect(() => {
         const fetchDeliveryPersons = async () => {
             try {
-                const response = await fetch('https://sastabazar.onrender.com/api/delivery/delivery-persons');
+                const response = await fetch('https://api.agrivemart.com/api/delivery/delivery-persons');
                 const data = await response.json();
                 console.log('Fetched delivery persons:', data);
 

@@ -11,7 +11,7 @@ function PendingOrdersPage() {
   // Fetch orders function
   const fetchOrders = async () => {
     try {
-      const response = await fetch('https://sastabazar.onrender.com/api/delivery/orders');
+      const response = await fetch('https://api.agrivemart.com/api/delivery/orders');
       const data = await response.json();
 
       console.log('Fetched orders:', data);
@@ -55,7 +55,7 @@ function PendingOrdersPage() {
     }
 
     try {
-      const response = await fetch('https://sastabazar.onrender.com/api/delivery/accept', {
+      const response = await fetch('https://api.agrivemart.com/api/delivery/accept', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

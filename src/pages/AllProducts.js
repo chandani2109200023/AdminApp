@@ -22,27 +22,53 @@ const AllProductsPage = () => {
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const response = await fetch('https://sastabazar.onrender.com/api/user/products');
+        const response = await fetch('https://api.agrivemart.com/api/user/products');
         const data = await response.json();
-        console.log('Fetched items:', data);
-        setItems(data);
-        setFilteredItems(data); // Initially, set filteredItems to all items
+
+        // Flatten each variant into its own row with reference to the parent product
+        const flattened = data.flatMap((product) => {
+          return product.variants.map((variant, index) => ({
+            ...variant,
+            _id: `${product._id}_${index}`, // Unique ID for DataGrid
+            productId: product._id, // Keep original product ID for edit/delete
+            name: product.name,
+            description: product.description,
+            category: product.category,
+            brand: product.brand,
+          }));
+        });
+
+        setItems(flattened);
+        setFilteredItems(flattened);
       } catch (error) {
         console.error('Error fetching items:', error);
       }
     };
+
     fetchItems();
   }, []);
 
   // Function to filter items based on search, category, and stock
   const filterItems = () => {
     let filtered = items;
+    // Filter by search term
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      filtered = filtered.filter(item =>
+        item.name.toLowerCase().includes(lowerSearch) ||
+        item.brand?.toLowerCase().includes(lowerSearch)
+      );
+    }
+    // Filter by selected category
+    if (selectedCategory) {
+      filtered = filtered.filter(item => item.category === selectedCategory);
+    }
+    // Filter by stock
     if (stockFilter === 'outOfStock') {
       filtered = filtered.filter(item => item.stock === 0);
     }
     setFilteredItems(filtered);
   };
-
   useEffect(() => {
     filterItems();
   }, [searchTerm, selectedCategory, stockFilter, items]); // Re-run filter whenever any of the filter criteria change
@@ -50,6 +76,7 @@ const AllProductsPage = () => {
   const columns = [
     { field: '_id', headerName: 'ID', width: 250 },
     { field: 'name', headerName: 'Name', width: 150 },
+    { field: 'brand', headerName: 'Brand', width: 150 },
     { field: 'description', headerName: 'Description', width: 250 },
     { field: 'price', headerName: 'Price (₹)', width: 80 },
     { field: 'discount', headerName: 'Discount', width: 80 },

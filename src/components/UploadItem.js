@@ -1,272 +1,268 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  Container, Typography, Button, TextField, Box, CardContent,
+  Container, Typography, Button, TextField, Box,
   FormControl, Select, MenuItem, FormHelperText
 } from '@mui/material';
-import { Formik, Form } from 'formik';
+import { Formik, Form, FieldArray } from 'formik';
 import * as Yup from 'yup';
 import axios from 'axios';
 
 const UploadItem = () => {
+  const [variantCountInput, setVariantCountInput] = useState(1); // default 1 variant
+  const variantCount = Math.max(1, parseInt(variantCountInput) || 1);
   const validationSchema = Yup.object({
     name: Yup.string().required('Item name is required'),
+    brand: Yup.string().required('Brand is required'),
     description: Yup.string().required('Description is required'),
-    price: Yup.number().required('Price is required').positive('Price must be positive'),
-    discount: Yup.number().required('Discount is required').positive('discount must be positive'),
     category: Yup.string().required('Category is required'),
-    stock: Yup.number().required('Stock is required').integer('Stock must be a whole number'),
-    imageUrl: Yup.string().required('Image URL is required').url('Invalid URL format'),
-    quantity: Yup.number().required('Quantity is required').integer('Quantity must be a whole number').positive('Quantity must be positive'),
+    variants: Yup.array()
+      .of(
+        Yup.object().shape({
+          price: Yup.number().required().positive(),
+          discount: Yup.number().required().min(0),
+          stock: Yup.number().required().integer(),
+          quantity: Yup.number().required().integer().positive(),
+          unit: Yup.string().required(),
+          imageUrl: Yup.string().url().required(),
+        })
+      )
+      .min(1, 'At least one variant is required'),
   });
+
+  const initialValues = {
+    name: '',
+    brand: '',
+    description: '',
+    category: '',
+    variants: Array.from({ length: variantCount }, () => ({
+      price: '',
+      discount: '',
+      stock: '',
+      quantity: '',
+      unit: '',
+      imageUrl: '',
+    })),
+  };
 
   const handleSubmit = async (values, { resetForm }) => {
     const token = localStorage.getItem('authToken');
-
-    if (!token) {
-      alert('Authentication token is missing. Please log in again.');
-      return;
-    }
+    if (!token) return alert('Missing token');
 
     try {
       const payload = {
-        ...values,
-        imageUrl: values.imageUrl.trim(),
+        name: values.name,
+        brand: values.brand,
+        description: values.description,
+        category: values.category,
+        variants: values.variants.map((v) => ({
+          ...v,
+          stock: parseInt(v.stock),
+          price: parseFloat(v.price),
+          quantity: parseInt(v.quantity),
+          discount: parseFloat(v.discount),
+        })),
       };
 
-      console.log('Payload being sent:', payload);
-
       const response = await axios.post(
-        'https://sastabazar.onrender.com/api/admin/products',
+        'https://api.agrivemart.com/api/admin/products',
         payload,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
       if (response.status === 201) {
+        alert('Uploaded successfully');
         resetForm();
         window.location.reload();
-      } else {
-        alert('Failed to upload item. Please try again.');
       }
     } catch (error) {
-      console.error('Error uploading item:', error.response?.data || error.message || error);
-      alert(
-        `An error occurred: ${error.response?.data?.message || error.message || 'Unknown error'}`
-      );
+      console.error(error);
+      alert('Upload failed');
     }
   };
 
   return (
-    <Container sx={{ marginTop: -1.5, padding: 2, backgroundColor: '#2E3B4E', boxShadow: 2, borderRadius: 2, marginLeft: '5px' }}>
-      <Typography variant="h6" gutterBottom sx={{ color: '#FFD700' }}>
-        Upload New Item
-      </Typography>
-      <CardContent>
-        <Formik
-          initialValues={{ name: '', description: '', price: '', discount: '', category: '', stock: '', imageUrl: '', quantity: '' }}
-          validationSchema={validationSchema}
-          onSubmit={handleSubmit}
-        >
-          {({ errors, touched, setFieldValue, values }) => (
-            <Form>
-              <Box marginBottom={1} bgcolor="#435D74" padding={1} borderRadius="8px">
-                <TextField
-                  label="Name"
-                  name="name"
-                  fullWidth
-                  onChange={(e) => setFieldValue('name', e.target.value)}
-                  error={touched.name && Boolean(errors.name)}
-                  helperText={touched.name && errors.name}
-                  variant="outlined"
-                  InputProps={{
-                    style: { backgroundColor: '#F0F0F0', color: '#333' },
-                  }}
-                />
-              </Box>
-              <Box marginBottom={1} bgcolor="#435D74" padding={1} borderRadius="8px">
-                <TextField
-                  label="Description"
-                  name="description"
-                  fullWidth
-                  onChange={(e) => setFieldValue('description', e.target.value)}
-                  error={touched.description && Boolean(errors.description)}
-                  helperText={touched.description && errors.description}
-                  variant="outlined"
-                  InputProps={{
-                    style: { backgroundColor: '#F0F0F0', color: '#333' },
-                  }}
-                />
-              </Box>
-              <Box marginBottom={1} bgcolor="#435D74" padding={1} borderRadius="8px">
-                <TextField
-                  label="Price (₹)"
-                  name="price"
-                  type="number"
-                  fullWidth
-                  onChange={(e) => setFieldValue('price', e.target.value)}
-                  error={touched.price && Boolean(errors.price)}
-                  helperText={touched.price && errors.price}
-                  variant="outlined"
-                  InputProps={{
-                    style: { backgroundColor: '#F0F0F0', color: '#333' },
-                  }}
-                />
-              </Box>
-              <Box marginBottom={1} bgcolor="#435D74" padding={1} borderRadius="8px">
-                <TextField
-                  label="Discount"
-                  name="discount"
-                  type="number"
-                  fullWidth
-                  value={values.discount}
-                  onChange={(e) => setFieldValue('discount', e.target.value)}
-                  error={touched.discount && Boolean(errors.discount)}
-                  helperText={touched.discount && errors.discount}
-                  variant="outlined"
-                  InputProps={{
-                    style: { backgroundColor: '#F0F0F0', color: '#333' },
-                  }}
-                />
+    <Container sx={{ padding: 2, backgroundColor: '#2E3B4E', borderRadius: 2 }}>
+      <Typography variant="h6" sx={{ color: '#FFD700' }}>Upload New Product</Typography>
 
-              </Box>
-              <Box marginBottom={1} bgcolor="#435D74" padding={1} borderRadius="8px">
-                <FormControl fullWidth error={touched.category && Boolean(errors.category)}>
-                  <Select
-                    name="category"
-                    value={values.category || ''}
-                    onChange={(e) => setFieldValue('category', e.target.value)}
-                    displayEmpty
-                    variant="outlined"
-                    inputProps={{
-                      style: { backgroundColor: '#F0F0F0', color: '#333' },
-                    }}
-                    MenuProps={{
-                      PaperProps: {
-                        style: { backgroundColor: '#F0F0F0' },
-                      },
-                    }}
-                  >
-                    <MenuItem value="" disabled>
-                      Select Category
-                    </MenuItem>
-                    <MenuItem value="Atta, Rice & Dal">Atta, Rice & Dal</MenuItem>
-                    <MenuItem value="Bakery & Biscuits">Bakery & Biscuits</MenuItem>
-                    <MenuItem value="Chicken, Meat & Fish">Chicken, Meat & Fish</MenuItem>
-                    <MenuItem value="Dairy, Bread & Eggs">Dairy, Bread & Eggs</MenuItem>
-                    <MenuItem value="Dry Fruits">Dry Fruits</MenuItem>
-                    <MenuItem value="Oil, Ghee & Masala">Oil, Ghee & Masala</MenuItem>
-                    <MenuItem value="Vegetables & Fruits">Vegetables & Fruits</MenuItem>
-                    <MenuItem value="Air Fresheners">Air Fresheners</MenuItem>
-                    <MenuItem value="Cleaning Supplies">Cleaning Supplies</MenuItem>
-                    <MenuItem value="Baby Care">Baby Care</MenuItem>
-                    <MenuItem value="Pooja Essentials">Pooja Essentials</MenuItem>
-                    <MenuItem value="Personal Care">Personal Care</MenuItem>
-                    <MenuItem value="Laundry Care">Laundry Care</MenuItem>
-                    <MenuItem value="Paper Products">Paper Products</MenuItem>
-                    <MenuItem value="Toiletries">Toiletries</MenuItem>
-                    <MenuItem value="Chips & Namkeen">Chips & Namkeen</MenuItem>
-                    <MenuItem value="Drinks & Juices">Drink & Juices</MenuItem>
-                    <MenuItem value="Ice Creams & More">Ice Creams & More</MenuItem>
-                    <MenuItem value="Instant Food">Instant Food</MenuItem>
-                    <MenuItem value="Sauces & Spreads">Sauces & Spreads</MenuItem>
-                    <MenuItem value="Sweets & Chocolates">Sweets & Chocolates</MenuItem>
-                    <MenuItem value="Tea, Coffee & Milk Drinks">Tea, Coffee & Milk Drinks</MenuItem>
-                  </Select>
-                  {touched.category && errors.category && (
-                    <FormHelperText sx={{ color: '#FFD700' }}>{errors.category}</FormHelperText>
-                  )}
-                </FormControl>
-              </Box>
-              <Box marginBottom={1} bgcolor="#435D74" padding={1} borderRadius="8px">
+      <Box marginBottom={2}>
+        <TextField
+          label="Number of Variants"
+          type="number"
+          value={variantCountInput}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (/^\d*$/.test(val)) {
+              setVariantCountInput(val);
+            }
+          }}
+          onBlur={() => {
+            if (!variantCountInput || parseInt(variantCountInput) < 1) {
+              setVariantCountInput('1');
+            }
+          }}
+          fullWidth
+          InputProps={{ style: { backgroundColor: '#F0F0F0', color: '#333' } }}
+          helperText="Minimum 1 variant required"
+        />
+      </Box>
+      <Formik
+        enableReinitialize
+        initialValues={initialValues}
+        validationSchema={validationSchema}
+        onSubmit={handleSubmit}
+      >
+        {({ values, errors, touched, setFieldValue }) => (
+          <Form>
+            {/* General Fields */}
+            {['name', 'brand', 'description'].map((field) => (
+              <Box key={field} marginBottom={1}>
                 <TextField
-                  label="Stock"
-                  name="stock"
-                  type="number"
                   fullWidth
-                  onChange={(e) => setFieldValue('stock', e.target.value)}
-                  error={touched.stock && Boolean(errors.stock)}
-                  helperText={touched.stock && errors.stock}
-                  variant="outlined"
-                  InputProps={{
-                    style: { backgroundColor: '#F0F0F0', color: '#333' },
-                  }}
+                  label={field[0].toUpperCase() + field.slice(1)}
+                  name={field}
+                  value={values[field]}
+                  onChange={(e) => setFieldValue(field, e.target.value)}
+                  error={touched[field] && Boolean(errors[field])}
+                  helperText={touched[field] && errors[field]}
+                  InputProps={{ style: { backgroundColor: '#F0F0F0', color: '#333' } }}
                 />
               </Box>
-              <Box marginBottom={1} bgcolor="#435D74" padding={1} borderRadius="8px">
-                <TextField
-                  label="Image URL"
-                  name="imageUrl"
-                  type="string"
-                  fullWidth
-                  onChange={(e) => setFieldValue('imageUrl', e.target.value)}
-                  error={touched.imageUrl && Boolean(errors.imageUrl)}
-                  helperText={touched.imageUrl && errors.imageUrl}
-                  variant="outlined"
-                  InputProps={{
-                    style: { backgroundColor: '#F0F0F0', color: '#333' },
-                  }}
-                />
-              </Box>
-              <Box marginBottom={1} bgcolor="#435D74" padding={1} borderRadius="8px" display="flex" alignItems="center" gap={1}>
-                <TextField
-                  label="Quantity"
-                  name="quantity"
-                  type="number"
-                  onChange={(e) => setFieldValue('quantity', e.target.value)}
-                  error={touched.quantity && Boolean(errors.quantity)}
-                  helperText={touched.quantity && errors.quantity}
-                  variant="outlined"
-                  InputProps={{
-                    style: { backgroundColor: '#F0F0F0', color: '#333' },
-                  }}
-                  sx={{ flex: 1 }}
-                />
-                <FormControl
-                  error={touched.unit && Boolean(errors.unit)}
-                  sx={{ minWidth: 120 }}
-                >
-                  <Select
-                    name="unit"
-                    value={values.unit || ''}
-                    onChange={(e) => setFieldValue('unit', e.target.value)}
-                    displayEmpty
-                    variant="outlined"
-                    inputProps={{
-                      style: { backgroundColor: '#F0F0F0', color: '#333' },
-                    }}
-                    MenuProps={{
-                      PaperProps: {
-                        style: { backgroundColor: '#F0F0F0' },
-                      },
-                    }}
-                  >
-                    <MenuItem value="" disabled>
-                      Unit
-                    </MenuItem>
-                    <MenuItem value="gm">Gram</MenuItem>
-                    <MenuItem value="kg">Kg</MenuItem>
-                    <MenuItem value="l">Liter</MenuItem>
-                    <MenuItem value="ml">MilliLiter</MenuItem>
-                    <MenuItem value="pieces">Pieces</MenuItem>
-                    <MenuItem value="pack">Pack</MenuItem>
+            ))}
 
-                  </Select>
-                  {touched.unit && errors.unit && (
-                    <FormHelperText sx={{ color: '#FFD700' }}>{errors.unit}</FormHelperText>
-                  )}
-                </FormControl>
-              </Box>
+            {/* Category */}
+            <FormControl fullWidth error={touched.category && Boolean(errors.category)}>
+              <Select
+                name="category"
+                value={values.category}
+                onChange={(e) => setFieldValue('category', e.target.value)}
+                displayEmpty
+                inputProps={{ style: { backgroundColor: '#F0F0F0', color: '#333' } }}
+              >
+                <MenuItem value="" disabled>Select Category</MenuItem>
+                <MenuItem value="Atta, Rice & Dal">Atta, Rice & Dal</MenuItem>
+                <MenuItem value="Bakery & Biscuits">Bakery & Biscuits</MenuItem>
+                <MenuItem value="Chicken, Meat & Fish">Chicken, Meat & Fish</MenuItem>
+                <MenuItem value="Dairy, Bread & Eggs">Dairy, Bread & Eggs</MenuItem>
+                <MenuItem value="Dry Fruits">Dry Fruits</MenuItem>
+                <MenuItem value="Oil, Ghee & Masala">Oil, Ghee & Masala</MenuItem>
+                <MenuItem value="Vegetables & Fruits">Vegetables & Fruits</MenuItem>
+                <MenuItem value="Air Fresheners">Air Fresheners</MenuItem>
+                <MenuItem value="Cleaning Supplies">Cleaning Supplies</MenuItem>
+                <MenuItem value="Baby Care">Baby Care</MenuItem>
+                <MenuItem value="Pooja Essentials">Pooja Essentials</MenuItem>
+                <MenuItem value="Personal Care">Personal Care</MenuItem>
+                <MenuItem value="Laundry Care">Laundry Care</MenuItem>
+                <MenuItem value="Paper Products">Paper Products</MenuItem>
+                <MenuItem value="Toiletries">Toiletries</MenuItem>
+                <MenuItem value="Chips & Namkeen">Chips & Namkeen</MenuItem>
+                <MenuItem value="Drink & Juices">Drink & Juices</MenuItem>
+                <MenuItem value="Ice Creams & More">Ice Creams & More</MenuItem>
+                <MenuItem value="Instant Food">Instant Food</MenuItem>
+                <MenuItem value="Sauces & Spreads">Sauces & Spreads</MenuItem>
+                <MenuItem value="Sweets & Chocolates">Sweets & Chocolates</MenuItem>
+                <MenuItem value="Tea, Coffee & Milk Drinks">Tea, Coffee & Milk Drinks</MenuItem>
+              </Select>
+              {touched.category && errors.category && (
+                <FormHelperText>{errors.category}</FormHelperText>
+              )}
+            </FormControl>
 
-              <Button type="submit" variant="contained" sx={{ backgroundColor: '#FFD700', marginTop: 1 }}>
-                Submit
-              </Button>
-            </Form>
-          )}
-        </Formik>
-      </CardContent>
+            {/* Variants */}
+            <FieldArray name="variants">
+              {() => (
+                <>
+                  {values.variants.map((variant, index) => (
+                    <Box key={index} marginTop={2} padding={2} bgcolor="#37475A" borderRadius={1}>
+                      <Typography variant="subtitle1" color="#FFD700">
+                        Variant {index + 1}
+                      </Typography>
+                      {['price', 'discount', 'stock', 'quantity'].map((field) => (
+                        <TextField
+                          key={field}
+                          label={field[0].toUpperCase() + field.slice(1)}
+                          name={`variants[${index}].${field}`}
+                          type="number"
+                          fullWidth
+                          margin="normal"
+                          value={variant[field]}
+                          onChange={(e) =>
+                            setFieldValue(`variants[${index}].${field}`, e.target.value)
+                          }
+                          error={
+                            touched.variants?.[index]?.[field] &&
+                            Boolean(errors.variants?.[index]?.[field])
+                          }
+                          helperText={
+                            touched.variants?.[index]?.[field] &&
+                            errors.variants?.[index]?.[field]
+                          }
+                          InputProps={{ style: { backgroundColor: '#F0F0F0', color: '#333' } }}
+                        />
+                      ))}
+
+                      {/* Image URL */}
+                      <TextField
+                        label="Image URL"
+                        name={`variants[${index}].imageUrl`}
+                        fullWidth
+                        margin="normal"
+                        value={variant.imageUrl}
+                        onChange={(e) =>
+                          setFieldValue(`variants[${index}].imageUrl`, e.target.value)
+                        }
+                        error={
+                          touched.variants?.[index]?.imageUrl &&
+                          Boolean(errors.variants?.[index]?.imageUrl)
+                        }
+                        helperText={
+                          touched.variants?.[index]?.imageUrl &&
+                          errors.variants?.[index]?.imageUrl
+                        }
+                        InputProps={{ style: { backgroundColor: '#F0F0F0', color: '#333' } }}
+                      />
+
+                      {/* Unit */}
+                      <FormControl
+                        fullWidth
+                        error={
+                          touched.variants?.[index]?.unit &&
+                          Boolean(errors.variants?.[index]?.unit)
+                        }
+                      >
+                        <Select
+                          name={`variants[${index}].unit`}
+                          value={variant.unit}
+                          onChange={(e) =>
+                            setFieldValue(`variants[${index}].unit`, e.target.value)
+                          }
+                          displayEmpty
+                          inputProps={{ style: { backgroundColor: '#F0F0F0', color: '#333' } }}
+                        >
+                          <MenuItem value="" disabled>Select Unit</MenuItem>
+                          <MenuItem value="kg">Kg</MenuItem>
+                          <MenuItem value="gm">Gram</MenuItem>
+                          <MenuItem value="ml">Milliliter</MenuItem>
+                          <MenuItem value="l">Liter</MenuItem>
+                          <MenuItem value="pieces">Pieces</MenuItem>
+                        </Select>
+                        {touched.variants?.[index]?.unit && (
+                          <FormHelperText>{errors.variants?.[index]?.unit}</FormHelperText>
+                        )}
+                      </FormControl>
+                    </Box>
+                  ))}
+                </>
+              )}
+            </FieldArray>
+
+            <Button type="submit" variant="contained" fullWidth sx={{ backgroundColor: '#FFD700', marginTop: 2 }}>
+              Submit Product
+            </Button>
+          </Form>
+        )}
+      </Formik>
     </Container>
   );
 };

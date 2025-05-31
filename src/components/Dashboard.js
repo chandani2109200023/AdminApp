@@ -20,24 +20,26 @@ function Dashboard() {
     // Fetch the total number of products
     const fetchTotalProducts = async () => {
       try {
-        const response = await fetch('https://sastabazar.onrender.com/api/user/products');
+        const response = await fetch('https://api.agrivemart.com/api/user/products');
         const products = await response.json();
-
-        const outOfStockCount = products.filter(product => product.stock === 0).length;
+        const outOfStockCount = products.filter(product =>
+          product.variants.every(variant => variant.stock === 0)
+        ).length;
 
         setData((prevData) => ({
           ...prevData,
           totalProducts: products.length,
-          outOfStock: outOfStockCount,  // ✅ Fix: Correctly updating `outOfStock`
+          outOfStock: outOfStockCount,
         }));
       } catch (error) {
         console.error('Error fetching total products:', error);
       }
     };
 
+
     const fetchDeliveryPersons = async () => {
       try {
-        const response = await fetch('https://sastabazar.onrender.com/api/delivery/delivery-persons');
+        const response = await fetch('https://api.agrivemart.com/api/delivery/delivery-persons');
         const data = await response.json();
 
         if (Array.isArray(data.data)) {
@@ -57,7 +59,7 @@ function Dashboard() {
     const fetchAppUsers = async () => {
       const token = localStorage.getItem('authToken');
       try {
-        const response = await fetch('https://sastabazar.onrender.com/api/admin/users', {
+        const response = await fetch('https://api.agrivemart.com/api/admin/users', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const users = await response.json();
@@ -74,7 +76,7 @@ function Dashboard() {
     // Fetch the total number of orders and their statuses
     const fetchTotalOrders = async () => {
       try {
-        const response = await fetch('https://sastabazar.onrender.com/api/delivery/orders');
+        const response = await fetch('https://api.agrivemart.com/api/delivery/orders');
         const result = await response.json();
         const orders = result.data;
 

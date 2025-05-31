@@ -10,7 +10,7 @@ const AppUsersPage = () => {
       const token = localStorage.getItem('authToken');  // Get token from localStorage
 
       try {
-        const response = await fetch('https://sastabazar.onrender.com/api/admin/users', {
+        const response = await fetch('https://api.agrivemart.com/api/admin/users', {
           headers: {
             'Authorization': `Bearer ${token}`,  // Add token to Authorization header
           }

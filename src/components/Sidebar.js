@@ -9,15 +9,17 @@ import {
   Button,
   Typography,
 } from "@mui/material";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import UploadIcon from "@mui/icons-material/CloudUpload";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LoginIcon from "@mui/icons-material/Login";
+import LockIcon from "@mui/icons-material/Lock";
 
 const Sidebar = () => {
   const navigate = useNavigate();
+  const isLoggedIn = !!localStorage.getItem("authToken");
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
@@ -29,13 +31,28 @@ const Sidebar = () => {
     navigate("/login");
   };
 
+  // Protected routes
+  const navigationItems = [
+    { text: "Dashboard", to: "/dashboard", icon: <DashboardIcon /> },
+    { text: "Upload Item", to: "/upload", icon: <UploadIcon /> },
+    { text: "Item List", to: "/items", icon: <ListAltIcon /> },
+  ];
+
+  const handleNavigation = (path) => {
+    if (isLoggedIn) {
+      navigate(path);
+    } else {
+      alert("Please login first");
+    }
+  };
+
   return (
     <Drawer
       variant="permanent"
       anchor="left"
       sx={{
         "& .MuiDrawer-paper": {
-          width: "250px", // Always expanded
+          width: "250px",
           transition: "width 0.3s ease",
           overflowX: "hidden",
           backgroundColor: "#1E1E2F",
@@ -54,7 +71,7 @@ const Sidebar = () => {
           padding: "20px",
         }}
       >
-        {/* Sidebar Name */}
+        {/* Brand */}
         <Box
           sx={{
             display: "flex",
@@ -62,7 +79,6 @@ const Sidebar = () => {
             justifyContent: "center",
             padding: "20px",
             marginBottom: "20px",
-            transition: "all 0.3s ease",
           }}
         >
           <Typography
@@ -82,22 +98,19 @@ const Sidebar = () => {
           </Typography>
         </Box>
 
-        {/* Navigation Links */}
+        {/* Navigation */}
         <List>
-          {[
-            { text: "Dashboard", to: "/dashboard", icon: <DashboardIcon /> },
-            { text: "Upload Item", to: "/upload", icon: <UploadIcon /> },
-            { text: "Item List", to: "/items", icon: <ListAltIcon /> },
-          ].map((item, index) => (
+          {navigationItems.map((item, index) => (
             <ListItem
               key={index}
-              component={Link}
-              to={item.to}
+              button
+              onClick={() => handleNavigation(item.to)}
               sx={{
                 padding: "10px 20px",
                 borderRadius: "8px",
                 margin: "5px 20px",
-                color: "#B0B0C3",
+                color: isLoggedIn ? "#B0B0C3" : "#888",
+                cursor: "pointer",
                 transition: "all 0.3s ease",
                 "&:hover": {
                   backgroundColor: "#FFC947",
@@ -110,11 +123,12 @@ const Sidebar = () => {
                 {item.icon}
               </ListItemIcon>
               <ListItemText primary={item.text} />
+              {!isLoggedIn && <LockIcon sx={{ fontSize: 16, color: "#FFC947" }} />}
             </ListItem>
           ))}
         </List>
 
-        {/* Buttons */}
+        {/* Auth Buttons */}
         <Box sx={{ padding: "30px", marginTop: "auto" }}>
           <Button
             fullWidth
