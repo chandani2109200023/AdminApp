@@ -13,33 +13,52 @@ function Dashboard() {
     pendingOrders: 0,
     deliveryPersons: 0,
     outOfStock: 0,
+    totalCoupons: 0,
   });
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch the total number of products
-    const fetchTotalProducts = async () => {
+    const fetchTotalCoupons = async () => {
       try {
-        const response = await fetch('https://api.agrivemart.com/api/user/products');
-        const products = await response.json();
-        const outOfStockCount = products.filter(product =>
-          product.variants.every(variant => variant.stock === 0)
+        const response = await fetch('https://apii.agrivemart.com/api/coupons/');
+        const data = await response.json();
+        setData((prev) => ({ ...prev, totalCoupons: data.length }));
+      } catch (error) {
+        console.error('Error fetching coupons:', error);
+      }
+    };
+    const fetchTotalProducts = async () => {
+      let page = 1;
+      let allProducts = [];
+
+      try {
+        while (true) {
+          const response = await fetch(`https://apii.agrivemart.com/api/user/products?page=${page}&limit=10000`);
+          const { products, totalPages } = await response.json();
+          allProducts = [...allProducts, ...products];
+
+          if (page >= totalPages) break;
+          page++;
+        }
+
+        const variantCount = allProducts.reduce((acc, p) => acc + p.variants.length, 0);
+        const outOfStockCount = allProducts.filter(p =>
+          p.variants.every(v => v.stock === 0)
         ).length;
 
         setData((prevData) => ({
           ...prevData,
-          totalProducts: products.length,
+          totalProducts: variantCount,
           outOfStock: outOfStockCount,
         }));
       } catch (error) {
-        console.error('Error fetching total products:', error);
+        console.error('Error fetching all paginated products:', error);
       }
     };
 
-
     const fetchDeliveryPersons = async () => {
       try {
-        const response = await fetch('https://api.agrivemart.com/api/delivery/delivery-persons');
+        const response = await fetch('https://apii.agrivemart.com/api/delivery/delivery-persons');
         const data = await response.json();
 
         if (Array.isArray(data.data)) {
@@ -59,7 +78,7 @@ function Dashboard() {
     const fetchAppUsers = async () => {
       const token = localStorage.getItem('authToken');
       try {
-        const response = await fetch('https://api.agrivemart.com/api/admin/users', {
+        const response = await fetch('https://apii.agrivemart.com/api/admin/users', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const users = await response.json();
@@ -76,7 +95,7 @@ function Dashboard() {
     // Fetch the total number of orders and their statuses
     const fetchTotalOrders = async () => {
       try {
-        const response = await fetch('https://api.agrivemart.com/api/delivery/orders');
+        const response = await fetch('https://apii.agrivemart.com/api/delivery/orders');
         const result = await response.json();
         const orders = result.data;
 
@@ -107,6 +126,7 @@ function Dashboard() {
     fetchAppUsers();
     fetchTotalOrders();
     fetchDeliveryPersons();
+    fetchTotalCoupons();
   }, []);
 
   const handleCardClick = (card) => {
@@ -137,6 +157,9 @@ function Dashboard() {
         break;
       case 'outOfStockProducts':
         navigate('/outOfStock', { state: { data: data.outOfStock } });
+        break;
+      case 'totalCoupons':
+        navigate('/coupons', { state: { data: data.totalCoupons } });
         break;
       default:
         break;
@@ -170,6 +193,7 @@ function Dashboard() {
         <DashboardCard title="All Products" value={data.totalProducts} bgColor="#2196F3" onClick={() => handleCardClick('totalProducts')} />
         <DashboardCard title="Out Of Stock Products" value={data.outOfStock} bgColor="#FF5722" onClick={() => handleCardClick('outOfStockProducts')} />
         <DashboardCard title="Total Delivery Persons" value={data.deliveryPersons} bgColor="#9C27B0" onClick={() => handleCardClick('deliveryPersons')} />
+        <DashboardCard title="Coupons Management" value={data.totalCoupons} bgColor="#3F51B5" onClick={() => handleCardClick('totalCoupons')} />
       </div>
     </div>
   );

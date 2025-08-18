@@ -32,7 +32,7 @@ const Login = () => {
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
-      const response = await axios.post('https://api.agrivemart.com/api/auth/loginAdmin', {
+      const response = await axios.post('https://apii.agrivemart.com/api/auth/loginAdmin', {
         email: values.email,
         password: values.password,
       });

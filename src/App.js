@@ -16,6 +16,7 @@ import AppUsersPage from './pages/appUsers';
 import DeliveryPersons from './pages/deliverPersons';
 import TotalOrderPage from './pages/totalOrder';
 import OutOfStockProducts from './pages/outOfStock';
+import CouponManagementPage from './pages/couponManagement';
 
 const App = () => (
   <ItemProvider> {/* Wrap everything with the provider */}
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/total-order-deliver" element={<TotalOrderDeliverPage />} />
             <Route path="/pending-orders" element={<PendingOrdersPage />} />
             <Route path="/outOfStock" element={<OutOfStockProducts />}/>
+            <Route path="/coupons" element={<CouponManagementPage/>}/>
           </Routes>
         </div>
       </div>
