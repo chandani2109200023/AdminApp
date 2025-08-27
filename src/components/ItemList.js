@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Tooltip } from '@mui/material';
 import {
   Container,
   Typography,
@@ -22,31 +24,184 @@ import {
 import { DataGrid } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-
-const categories = [
-  "Atta, Rice & Dal",
-  "Bakery & Biscuits",
-  "Chicken, Meat & Fish",
-  "Dairy, Bread & Eggs",
-  "Dry Fruits",
-  "Oil, Ghee & Masala",
-  "Vegetables & Fruits",
-  "Air Fresheners",
-  "Cleaning Supplies",
-  "Baby Care",
-  "Pooja Essentials",
-  "Personal Care",
-  "Paper Products",
-  "Toiletries",
-  "Chips & Namkeen",
-  "Drinks & Juices",
-  "Ice Creams & More",
-  "Instant Food",
-  "Sauces & Spreads",
-  "Sweets & Chocolates",
-  "Tea, Coffee & Milk Drinks",
+import WarehouseIcon from '@mui/icons-material/Warehouse';
+const categoryOptions = [
+  { 
+    name: "Baby Care", 
+    subcategories: [
+      "Baby Bath & Hygiene",
+      "Baby Food",
+      "Baby Gift Set",
+      "Baby Skin Care",
+      "Diapers & Wipes"
+    ] 
+  },
+  { 
+    name: "Bakery, Cakes & Dairy", 
+    subcategories: [
+      "Breads & Cake",
+      "Butter, Paneer, Cheese & Cream",
+      "Milk, Milk Powder & Curd"
+    ] 
+  },
+  { 
+    name: "Beverages", 
+    subcategories: [
+      "Coffee",
+      "Fruit Juice & Squash",
+      "Health & Energy Drinks",
+      "Ice Creams & Desserts",
+      "Lassi, Milkshake & Buttermilk",
+      "Soft Drinks",
+      "Tea",
+      "Water"
+    ] 
+  },
+  { 
+    name: "Cleaning & Household", 
+    subcategories: [
+      "All Purpose Cleaners",
+      "Appliances & Electricals",
+      "Car & Shoe Care",
+      "Detergent & Dishwash",
+      "Disposable & Garbage Bag",
+      "Home & Bathroom Cleaning",
+      "Kitchen Utilities",
+      "Party & Festive Needs",
+      "Puja Needs",
+      "Repellents & Fresheners"
+    ] 
+  },
+  { 
+    name: "Combo", 
+    subcategories: [
+      "Festive Combo",
+      "Super Saving Combo"
+    ] 
+  },
+  { 
+    name: "Fish, Meat & Egg", 
+    subcategories: [
+      "Eggs",
+      "Fresh Chicken",
+      "Fresh Fish",
+      "Fresh Mutton",
+      "Frozen Fish"
+    ] 
+  },
+  { 
+    name: "Foodgrain", 
+    subcategories: [
+      "Atta, Flours, Sooji, Besan",
+      "Dal & Pulses",
+      "Rice & Rice Products"
+    ] 
+  },
+  { 
+    name: "Frozen Foods", 
+    subcategories: [
+      "Non-Vegetarian",
+      "Vegetarian"
+    ] 
+  },
+  { 
+    name: "Fruits & Vegetables", 
+    subcategories: [
+      "Fruit & Vegetable Cleaner",
+      "Fruits",
+      "Vegetables"
+    ] 
+  },
+  { 
+    name: "Gift Packs", 
+    subcategories: [
+      "For Couple",
+      "For Her",
+      "For Him",
+      "For Kids",
+      "Body Care"
+    ] 
+  },
+  { 
+    name: "Herbal", 
+    subcategories: [
+      "Food & Drinks",
+      "For Home",
+      "Kitchen Accessories"
+    ] 
+  },
+  { 
+    name: "Kitchen & Dining Needs", 
+    subcategories: [
+      "Steel Utensils",
+      "Storage & Accessories"
+    ] 
+  },
+  { 
+    name: "Mask & Sanitisers", 
+    subcategories: [
+      "Mask",
+      "Sanitizers"
+    ] 
+  },
+  { 
+    name: "Membership Plan", 
+    subcategories: []
+  },
+  { 
+    name: "Oil & Spices", 
+    subcategories: [
+      "Cooking Paste",
+      "Herbs & Whole Spices",
+      "Oil, Dalda & Ghee",
+      "Powder Spices",
+      "Salt & Sugar"
+    ] 
+  },
+  { 
+    name: "Personal Care", 
+    subcategories: [
+      "Adult Diaper",
+      "Bath & Handwash",
+      "Cosmetics",
+      "Face Care",
+      "Feminine Hygiene",
+      "Hair Care",
+      "Medicare",
+      "Men's Grooming",
+      "Oral Care",
+      "Perfumes & Deos",
+      "Skin Care",
+      "Wellness Product",
+      "Winter Care",
+      "Wipes & Tissues"
+    ] 
+  },
+  { 
+    name: "Snacks & Branded Foods", 
+    subcategories: [
+      "Baking",
+      "Biscuits & Cookies",
+      "Breakfast Cereals & Oats",
+      "Canned Food",
+      "Chocolates & Candies",
+      "Indian Mithai",
+      "Jam & Honey",
+      "Noodles, Pasta & Vermicelli",
+      "Pickles & Chutney",
+      "Ready to Cook",
+      "Snacks & Namkeen",
+      "Spread, Sauce & Ketchup"
+    ] 
+  },
+  { 
+    name: "Stationery & Office Supplies", 
+    subcategories: [
+      "Folder & Desk Supplies",
+      "Notebook & Pens"
+    ] 
+  }
 ];
-
 const units = [
   "pack",
   "gm",
@@ -65,29 +220,39 @@ const ItemList = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [stockFilter, setStockFilter] = useState('all');
   const [totalPages, setTotalPages] = useState(1);
+  const [openStockDialog, setOpenStockDialog] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [warehouses, setWarehouses] = useState([]);
+  const [selectedWarehouse, setSelectedWarehouse] = useState('');
+  const [newStock, setNewStock] = useState(0);
+  const navigate = useNavigate();
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const page = 1; // set this if pagination is needed later
+        const page = 1;
         const response = await fetch(`https://apii.agrivemart.com/api/user/products?page=${page}&limit=10000`);
         const data = await response.json();
         const products = data.products || [];
 
         const flattened = products
           .map((product) => {
-            if (!Array.isArray(product.variants)) return []; // prevent crash
-            return product.variants.map((variant, index) => ({
+            if (!Array.isArray(product.variants)) return [];
+            return product.variants.map((variant) => ({
               ...variant,
-              _id: `${product._id?.$oid || product._id}_${index}`,
+              variantId: variant._id?.$oid || variant._id,
               productId: product._id?.$oid || product._id,
               name: product.name,
               description: product.description,
+              shortDescription: product.shortDescription,
               category: product.category,
+              subcategory: product.subcategory,
               brand: product.brand,
+              gst: product.gst,
               createdAt: product.createdAt?.$date || product.createdAt || null,
+              warehouseStock: variant.warehouseStock || [],
             }));
           })
-          .flat(); // flatten the array of arrays
+          .flat();
 
         setItems(flattened);
         setFilteredItems(flattened);
@@ -96,12 +261,23 @@ const ItemList = () => {
         console.error('Error fetching items:', error);
       }
     };
+    const fetchWarehouses = async () => {
+      try {
+        const res = await fetch(`https://apii.agrivemart.com/api/wareHouse/`);
+        const data = await res.json();
+        setWarehouses(data);
+      } catch (error) {
+        console.error("Error fetching warehouses:", error);
+      }
+    };
 
     fetchItems();
+    fetchWarehouses();
   }, []);
 
   const filterItems = () => {
     let filtered = items;
+
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase();
       filtered = filtered.filter(item =>
@@ -109,19 +285,96 @@ const ItemList = () => {
         item.brand?.toLowerCase().includes(lowerSearch)
       );
     }
+
     if (selectedCategory) {
       filtered = filtered.filter(item => item.category === selectedCategory);
     }
     if (stockFilter === 'outOfStock') {
-      filtered = filtered.filter(item => Number(item.stock) === 0);
+      filtered = filtered.filter(item => {
+        if (!item.warehouseStock || item.warehouseStock.length === 0) return true;
+        return item.warehouseStock.some(ws => Number(ws.stock) === 0);
+      });
     }
     setFilteredItems(filtered);
   };
 
+
   useEffect(() => {
     filterItems();
   }, [searchTerm, selectedCategory, stockFilter, items]);
+  const handleOpenStockDialog = (item) => {
+    setSelectedItem(item);
 
+    // If warehouseStock exists, pre-fill newStock for first warehouse by default
+    if (item.warehouseStock && item.warehouseStock.length > 0) {
+      const firstStock = item.warehouseStock[0];
+      setSelectedWarehouse(firstStock._id || firstStock.warehouseId); // use your warehouse ID
+      setNewStock(firstStock.stock || 0);
+    } else {
+      setSelectedWarehouse('');
+      setNewStock(0);
+    }
+
+    setOpenStockDialog(true);
+  };
+  // When warehouse dropdown changes, auto-fill stock
+  const handleWarehouseChange = (warehouseId) => {
+    setSelectedWarehouse(warehouseId);
+
+    if (selectedItem && selectedItem.warehouseStock) {
+      const ws = selectedItem.warehouseStock.find(
+        (w) => (w._id || w.warehouseId) === warehouseId
+      );
+      setNewStock(ws ? ws.stock : 0);
+    } else {
+      setNewStock(0);
+    }
+  };
+  const handleCloseStockDialog = () => {
+    setSelectedItem(null);
+    setSelectedWarehouse('');
+    setNewStock(0);
+    setOpenStockDialog(false);
+  };
+
+  // ✅ Call backend API to update stock
+  const handleUpdateStock = async () => {
+    if (!selectedItem || !selectedWarehouse) return;
+
+    const token = localStorage.getItem('authToken');
+    try {
+      const response = await fetch(
+        `https://apii.agrivemart.com/api/admin/${selectedItem.productId}/variant/${selectedItem.variantId}/warehouse/${selectedWarehouse}/stock`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ stock: Number(newStock) }),
+        }
+      );
+
+      if (response.ok) {
+        alert("Stock updated successfully");
+
+        // update UI instantly
+        setItems((prev) =>
+          prev.map((item) =>
+            item._id === selectedItem._id ? { ...item, stock: newStock } : item
+          )
+        );
+        handleCloseStockDialog();
+      } else {
+        const errText = await response.text();
+        console.error("Failed:", errText);
+        alert("Failed to update stock");
+      }
+    } catch (error) {
+      console.error("Error updating stock:", error);
+      alert("Error updating stock");
+    }
+  };
   const handleDelete = async (productId) => {
     const token = localStorage.getItem('authToken');
     try {
@@ -152,93 +405,107 @@ const ItemList = () => {
     setOpen(false);
     setEditItem(null);
   };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!editItem) return;
+
     const token = localStorage.getItem('authToken');
 
-    let formData;
-    let variant;
-
-    if (editItem.uploadType === 'file') {
-      variant = {
-        price: Number(editItem.price),
-        discount: Number(editItem.discount),
-        stock: Number(editItem.stock),
-        quantity: Number(editItem.quantity),
-        unit: editItem.unit,
-        uploadType: 'file',
-        ...(editItem.localImageUrl ? { localImageUrl: editItem.localImageUrl } : {}),
-      };
-
-      formData = new FormData();
-      formData.append('name', editItem.name?.trim() || '');
-      formData.append('description', editItem.description?.trim() || '');
-      formData.append('category', editItem.category || '');
-      formData.append('brand', editItem.brand?.trim() || '');
-      formData.append('variants', JSON.stringify([variant]));
-
-      // Only append new file if selected
-      if (editItem.imageFile) {
-        formData.append('image_0', editItem.imageFile);
-      }
-    }
-    else {
-      // Omit imageUrl if it's empty
-      const urlToSend = editItem.imageUrl?.trim() || editItem.localImageUrl || '';
-
-      const urlBasedVariant = {
-        price: Number(editItem.price),
-        discount: Number(editItem.discount),
-        stock: Number(editItem.stock),
-        quantity: Number(editItem.quantity),
-        unit: editItem.unit,
-        uploadType: 'url',
-        ...(urlToSend ? { imageUrl: urlToSend } : {}),
-      };
-
-
-      formData = JSON.stringify({
-        name: editItem.name?.trim() || '',
-        description: editItem.description?.trim() || '',
-        category: editItem.category || '',
-        brand: editItem.brand?.trim() || '',
-        variants: [urlBasedVariant],
-      });
-    }
-
     try {
+      let body;
+      let headers = { Authorization: `Bearer ${token}` };
+
+      if (editItem.uploadType === 'file') {
+        // ✅ FormData for file upload
+        body = new FormData();
+        body.append('name', editItem.name?.trim() || '');
+        body.append('shortDescription', editItem.shortDescription?.trim() || '');
+        body.append('description', editItem.description?.trim() || '');
+        body.append('brand', editItem.brand?.trim() || '');
+        body.append('category', editItem.category || '');
+        body.append('subcategory', editItem.subcategory || '');
+        body.append('gst', editItem.gst || 0);
+
+        // Variant data
+        const variantData = {
+          price: Number(editItem.price),
+          mrp: Number(editItem.mrp),
+          discount: Number(editItem.discount),
+          quantity: Number(editItem.quantity),
+          unit: editItem.unit,
+          uploadType: 'file',
+          warehouseStock: editItem.warehouseStock || [],
+        };
+
+        // Only append new file if selected, otherwise preserve old image
+        if (editItem.imageFile) {
+          body.append('image_0', editItem.imageFile);
+        } else if (editItem.localImageUrl) {
+          variantData.localImageUrl = editItem.localImageUrl;
+        }
+
+        body.append('variants', JSON.stringify([variantData]));
+
+      } else {
+        // ✅ JSON payload for URL-based variant
+        headers['Content-Type'] = 'application/json';
+
+        const variantData = {
+          price: Number(editItem.price),
+          mrp: Number(editItem.mrp),
+          discount: Number(editItem.discount),
+          quantity: Number(editItem.quantity),
+          unit: editItem.unit,
+          warehouseStock: editItem.warehouseStock || [],
+          uploadType: 'url',
+        };
+
+        // Only include imageUrl if provided
+        if (editItem.imageUrl) variantData.imageUrl = editItem.imageUrl;
+        // Preserve localImageUrl if it exists
+        if (editItem.localImageUrl) variantData.localImageUrl = editItem.localImageUrl;
+
+        body = JSON.stringify({
+          name: editItem.name?.trim() || '',
+          shortDescription: editItem.shortDescription?.trim() || '',
+          description: editItem.description?.trim() || '',
+          brand: editItem.brand?.trim() || '',
+          category: editItem.category || '',
+          subcategory: editItem.subcategory || '',
+          gst: editItem.gst || 0,
+          variants: [variantData],
+        });
+      }
+
+      // Call API
       const response = await fetch(`https://apii.agrivemart.com/api/admin/products/${editItem.productId}`, {
         method: 'PUT',
-        headers:
-          editItem.uploadType === 'file'
-            ? { Authorization: `Bearer ${token}` }
-            : {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-        body: formData,
+        headers,
+        body,
       });
 
       if (response.ok) {
+        const updatedData = await response.json();
+
+        // Update local state including image preservation
         setItems((prevItems) =>
-          prevItems.map((item) => {
-            if (item._id === editItem._id) {
-              return {
+          prevItems.map((item) =>
+            item._id === editItem._id
+              ? {
                 ...item,
                 ...editItem,
-                localImageUrl: editItem.localImageUrl || item.localImageUrl,  // preserve existing localImageUrl if missing
-                imageUrl: editItem.imageUrl || item.imageUrl,  // optional: preserve imageUrl too
-              };
-            }
-            return item;
-          })
+                localImageUrl: editItem.localImageUrl || item.localImageUrl,
+                imageUrl: editItem.imageUrl || item.imageUrl,
+              }
+              : item
+          )
         );
 
         handleClose();
+        alert('Item updated successfully');
       } else {
-        const error = await response.text();
-        console.error('Update failed:', error);
+        const errorText = await response.text();
+        console.error('Update failed:', errorText);
         alert('Update failed');
       }
     } catch (err) {
@@ -246,25 +513,67 @@ const ItemList = () => {
       alert('Error updating item');
     }
   };
-
   const columns = [
-    { field: '_id', headerName: 'ID', width: 250 },
-    { field: 'name', headerName: 'Name', width: 150 },
-    { field: 'brand', headerName: 'Brand', width: 150 },
-    { field: 'description', headerName: 'Description', width: 250 },
-    { field: 'price', headerName: 'Price (₹)', width: 80 },
-    { field: 'discount', headerName: 'Discount', width: 80 },
-    { field: 'category', headerName: 'Category', width: 200 },
-    { field: 'stock', headerName: 'Stock', width: 70 },
+    { field: '_id', headerName: 'ID', width: 220 },
+    { field: 'name', headerName: 'Name', width: 160 },
+    { field: 'brand', headerName: 'Brand', width: 120 },
+    { field: 'description', headerName: 'Description', width: 200 },
+    { field: 'shortDescription', headerName: 'Short Desc', width: 150 },
+    { field: 'category', headerName: 'Category', width: 150 },
+    { field: 'subcategory', headerName: 'Subcategory', width: 150 },
+    { field: 'gst', headerName: 'GST %', width: 90 },
+    { field: 'price', headerName: 'Price (₹)', width: 100 },
+    { field: 'discount', headerName: 'Discount %', width: 100 },
     {
       field: 'quantity',
       headerName: 'Quantity',
-      width: 100,
+      width: 120,
+      renderCell: (params) => `${params.row.quantity} ${params.row.unit || ''}`,
+    },
+    {
+      field: 'warehouseStock',
+      headerName: 'Warehouse Stock',
+      width: 200,
       renderCell: (params) => {
-        const quantity = params.row.quantity || 0;
-        const unit = params.row.unit || '';
-        return `${quantity} ${unit}`;
+        if (!params.row.warehouseStock || params.row.warehouseStock.length === 0) {
+          return 'No Stock';
+        }
+        const tooltipText = params.row.warehouseStock.map(s => `${s.location} (${s.pincode}): ${s.stock}`).join('\n');
+        return (
+          <Tooltip title={tooltipText} arrow placement="top">
+            <Box>
+              {params.row.warehouseStock.map((ws, i) => (
+                <Typography key={i} variant="body2">
+                  {ws.location} ({ws.pincode}): {ws.stock}
+                </Typography>
+              ))}
+            </Box>
+          </Tooltip>
+        );
       },
+    },
+    {
+      field: 'updateStock',
+      headerName: 'Add Stock',
+      width: 120,
+      renderCell: (params) => (
+        <IconButton onClick={() => handleOpenStockDialog(params.row)} color="primary">
+          <WarehouseIcon />
+        </IconButton>
+      ),
+    },
+    {
+      headerName: 'Image',
+      width: 120,
+      renderCell: (params) => (
+        <Button
+          variant="contained"
+          size="small"
+          onClick={() => navigate(`/product/${params.row.variantId}/images`)}
+        >
+          Manage Images
+        </Button>
+      ),
     },
     {
       field: 'localImageUrl',
@@ -286,18 +595,14 @@ const ItemList = () => {
       headerName: 'Created At',
       width: 180,
       renderCell: (params) => {
-        if (!params || !params.row) return 'N/A';
-        const createdAt = params.row.createdAt;
-        if (!createdAt) return 'N/A';
-        const date = new Date(createdAt);
-        return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString();
+        const date = new Date(params.row.createdAt);
+        return isNaN(date.getTime()) ? 'N/A' : date.toLocaleString();
       },
     },
-
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 100,
+      width: 120,
       renderCell: (params) => (
         <>
           <IconButton onClick={() => handleEdit(params.row._id)} color="primary">
@@ -310,7 +615,6 @@ const ItemList = () => {
       ),
     },
   ];
-
   return (
     <Container sx={{ display: 'flex', flexDirection: 'column', padding: 2, backgroundColor: '#2C3E50', borderRadius: 2 }}>
       <CardContent>
@@ -331,8 +635,10 @@ const ItemList = () => {
             <InputLabel>Category</InputLabel>
             <Select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} label="Category">
               <MenuItem value="">All Categories</MenuItem>
-              {categories.map(cat => (
-                <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+              {categoryOptions.map(cat => (
+                <MenuItem key={cat.name} value={cat.name}>
+                  {cat.name}
+                </MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -371,11 +677,61 @@ const ItemList = () => {
             No products available
           </Typography>
         )}
+        {/* ✅ Stock Update Dialog */}
+        <Dialog open={openStockDialog} onClose={handleCloseStockDialog} maxWidth="sm" fullWidth>
+          <DialogTitle>Update Stock</DialogTitle>
+          <DialogContent>
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Select Warehouse</InputLabel>
+              <Select
+                value={selectedWarehouse}
+                onChange={(e) => handleWarehouseChange(e.target.value)}
+              >
+                {warehouses.map((wh) => (
+                  <MenuItem key={wh._id} value={wh._id}>
+                    {wh.name} - {wh.location}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
+            <TextField
+              label="New Stock"
+              type="number"
+              fullWidth
+              margin="normal"
+              value={newStock}
+              onChange={(e) => setNewStock(e.target.value)}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseStockDialog} color="error">Cancel</Button>
+            <Button onClick={handleUpdateStock} color="success">Update</Button>
+          </DialogActions>
+        </Dialog>
         <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
           <DialogTitle>Edit Item</DialogTitle>
           <DialogContent>
             <form onSubmit={handleSubmit} id="edit-form">
+              {/* Product ID (readonly) */}
+              <TextField
+                label="Product ID"
+                fullWidth
+                value={editItem?.productId || ''}
+                margin="normal"
+                InputProps={{ readOnly: true }}
+              />
+
+              {/* Variant ID (readonly) */}
+              <TextField
+                label="Variant ID"
+                fullWidth
+                value={editItem?.variantId || ''}
+                margin="normal"
+                InputProps={{ readOnly: true }}
+              />
+
+              {/* Name */}
               <TextField
                 label="Name"
                 fullWidth
@@ -384,6 +740,17 @@ const ItemList = () => {
                 margin="normal"
                 required
               />
+
+              {/* Short Description */}
+              <TextField
+                label="Short Description"
+                fullWidth
+                value={editItem?.shortDescription || ''}
+                onChange={(e) => setEditItem({ ...editItem, shortDescription: e.target.value })}
+                margin="normal"
+              />
+
+              {/* Description */}
               <TextField
                 label="Description"
                 fullWidth
@@ -393,23 +760,8 @@ const ItemList = () => {
                 onChange={(e) => setEditItem({ ...editItem, description: e.target.value })}
                 margin="normal"
               />
-              <TextField
-                label="Price (₹)"
-                type="number"
-                fullWidth
-                value={editItem?.price || ''}
-                onChange={(e) => setEditItem({ ...editItem, price: Number(e.target.value) })}
-                margin="normal"
-                required
-              />
-              <TextField
-                label="Discount"
-                type="number"
-                fullWidth
-                value={editItem?.discount || 0}
-                onChange={(e) => setEditItem({ ...editItem, discount: Number(e.target.value) })}
-                margin="normal"
-              />
+
+              {/* Brand */}
               <TextField
                 label="Brand"
                 fullWidth
@@ -418,126 +770,159 @@ const ItemList = () => {
                 margin="normal"
                 required
               />
+              {/* Category */}
               <FormControl fullWidth margin="normal">
                 <InputLabel>Category</InputLabel>
                 <Select
                   value={editItem?.category || ''}
-                  onChange={(e) => setEditItem({ ...editItem, category: e.target.value })}
+                  onChange={(e) => {
+                    const selectedCat = e.target.value;
+                    setEditItem({
+                      ...editItem,
+                      category: selectedCat,
+                      // Only reset subcategory if category is different from previous
+                      subcategory: selectedCat !== editItem.category ? '' : editItem.subcategory,
+                    });
+                  }}
                   required
                 >
-                  {categories.map((cat) => (
-                    <MenuItem key={cat} value={cat}>
-                      {cat}
-                    </MenuItem>
+                  {categoryOptions.map((cat) => (
+                    <MenuItem key={cat.name} value={cat.name}>{cat.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
+
+              {/* Subcategory */}
+              <FormControl fullWidth margin="normal" disabled={!editItem?.category}>
+                <InputLabel>Subcategory</InputLabel>
+                <Select
+                  value={editItem?.subcategory || ''}
+                  onChange={(e) => setEditItem({ ...editItem, subcategory: e.target.value })}
+                  required
+                >
+                  {editItem?.category &&
+                    categoryOptions
+                      .find((cat) => cat.name === editItem.category)
+                      ?.subcategories.map((sub) => (
+                        <MenuItem key={sub} value={sub}>{sub}</MenuItem>
+                      ))
+                  }
+                </Select>
+              </FormControl>
+              {/* GST */}
               <TextField
-                label="Stock"
+                label="GST (%)"
                 type="number"
                 fullWidth
-                value={editItem?.stock || 0}
-                onChange={(e) => setEditItem({ ...editItem, stock: Number(e.target.value) })}
+                value={editItem?.gst || 0}
+                onChange={(e) => setEditItem({ ...editItem, gst: Number(e.target.value) })}
+                margin="normal"
+              />
+
+              {/* Price */}
+              <TextField
+                label="Price (₹)"
+                type="number"
+                fullWidth
+                value={editItem?.price || 0}
+                onChange={(e) => setEditItem({ ...editItem, price: Number(e.target.value) })}
+                margin="normal"
+                required
+              />
+              <TextField
+                label="MRP (₹)"
+                type="number"
+                fullWidth
+                value={editItem?.mrp || 0}
+                onChange={(e) => setEditItem({ ...editItem, price: Number(e.target.value) })}
                 margin="normal"
                 required
               />
 
-              {/* Upload type radio */}
-              <FormControl component="fieldset" sx={{ mt: 2 }}>
-                <Typography variant="subtitle1">Upload Type</Typography>
-                <RadioGroup
-                  row
-                  value={editItem?.uploadType || ''}
-                  onChange={(e) => {
-                    const type = e.target.value;
-                    setEditItem((prev) => ({
-                      ...prev,
-                      uploadType: type,
-                      imageUrl: type === 'url' ? prev.imageUrl : '',
-                      imageFile: type === 'file' ? null : prev.imageFile,
-                    }));
-                  }}
-                >
-                  <FormControlLabel value="url" control={<Radio />} label="Image URL" />
-                  <FormControlLabel value="file" control={<Radio />} label="Upload File" />
-                </RadioGroup>
-              </FormControl>
-              {/* If URL option selected */}
-              {editItem?.uploadType === 'url' && (
+              {/* Discount */}
+              <TextField
+                label="Discount (%)"
+                type="number"
+                fullWidth
+                value={editItem?.discount || 0}
+                onChange={(e) => setEditItem({ ...editItem, discount: Number(e.target.value) })}
+                margin="normal"
+              />
+              {/* Quantity + Unit */}
+              <Box sx={{ display: "flex", gap: 2 }}>
                 <TextField
-                  label="Image URL"
+                  label="Quantity"
+                  type="number"
                   fullWidth
-                  value={editItem?.imageUrl || ''}
-                  onChange={(e) =>
-                    setEditItem({
-                      ...editItem,
-                      imageUrl: e.target.value,
-                      imageFile: null, // clear file if switching
-                    })
-                  }
+                  value={editItem?.quantity || 0}
+                  onChange={(e) => setEditItem({ ...editItem, quantity: Number(e.target.value) })}
                   margin="normal"
                   required
                 />
+                <FormControl fullWidth margin="normal">
+                  <InputLabel>Unit</InputLabel>
+                  <Select
+                    value={editItem?.unit || ''}
+                    onChange={(e) => setEditItem({ ...editItem, unit: e.target.value })}
+                    required
+                  >
+                    {units.map((unit) => (
+                      <MenuItem key={unit} value={unit}>{unit}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+              {/* Created At (readonly) */}
+              <TextField
+                label="Created At"
+                fullWidth
+                value={editItem?.createdAt ? new Date(editItem.createdAt).toLocaleString() : "N/A"}
+                margin="normal"
+                InputProps={{ readOnly: true }}
+              />
+
+              {/* Warehouse Stock (optional: editable) */}
+              {editItem?.warehouseStock && editItem.warehouseStock.length > 0 && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle1">Warehouse Stock</Typography>
+                  {editItem.warehouseStock.map((ws, idx) => (
+                    <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
+                      <TextField
+                        label="Location"
+                        value={ws.location}
+                        onChange={(e) => {
+                          const newWS = [...editItem.warehouseStock];
+                          newWS[idx].location = e.target.value;
+                          setEditItem({ ...editItem, warehouseStock: newWS });
+                        }}
+                      />
+                      <TextField
+                        label="Pincode"
+                        value={ws.pincode}
+                        onChange={(e) => {
+                          const newWS = [...editItem.warehouseStock];
+                          newWS[idx].pincode = e.target.value;
+                          setEditItem({ ...editItem, warehouseStock: newWS });
+                        }}
+                      />
+                      <TextField
+                        label="Stock"
+                        type="number"
+                        value={ws.stock}
+                        onChange={(e) => {
+                          const newWS = [...editItem.warehouseStock];
+                          newWS[idx].stock = Number(e.target.value);
+                          setEditItem({ ...editItem, warehouseStock: newWS });
+                        }}
+                      />
+                    </Box>
+                  ))}
+                </Box>
               )}
 
-              {/* If File option selected */}
-              {editItem?.uploadType === 'file' && (
-                <>
-                  <Button variant="contained" component="label" sx={{ mt: 1 }}>
-                    Upload Image
-                    <input
-                      type="file"
-                      hidden
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          setEditItem((prev) => ({
-                            ...prev,
-                            imageFile: file,
-                            imageUrl: '', // clear url if switching
-                          }));
-                        }
-                      }}
-                    />
-                  </Button>
-                  {editItem?.imageFile && (
-                    <Typography sx={{ mt: 1 }}>
-                      Selected: <strong>{editItem.imageFile.name}</strong>
-                    </Typography>
-                  )}
-                </>
-              )}
-              <TextField
-                label="Quantity"
-                type="number"
-                fullWidth
-                value={editItem?.quantity || 0}
-                onChange={(e) => setEditItem({ ...editItem, quantity: Number(e.target.value) })}
-                margin="normal"
-                required
-              />
-              <FormControl fullWidth margin="normal">
-                <InputLabel>Unit</InputLabel>
-                <Select
-                  value={editItem?.unit || ''}
-                  onChange={(e) => setEditItem({ ...editItem, unit: e.target.value })}
-                  required
-                >
-                  {units.map((unit) => (
-                    <MenuItem key={unit} value={unit}>
-                      {unit}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
               <DialogActions>
-                <Button onClick={handleClose} sx={{ color: '#E74C3C' }}>
-                  Cancel
-                </Button>
-                <Button type="submit" form="edit-form" sx={{ color: '#2ECC71' }}>
-                  Save
-                </Button>
+                <Button onClick={handleClose} sx={{ color: '#E74C3C' }}>Cancel</Button>
+                <Button type="submit" form="edit-form" sx={{ color: '#2ECC71' }}>Save</Button>
               </DialogActions>
             </form>
           </DialogContent>

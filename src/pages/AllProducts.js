@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Tooltip } from '@mui/material';
 import {
   Container,
   Typography,
@@ -24,21 +25,34 @@ const AllProductsPage = () => {
 
   const fetchItems = async () => {
     try {
-      const response = await fetch(`https://apii.agrivemart.com/api/user/products?page=${page}&limit=10000`);
+      const response = await fetch(`https://apii.agrivemart.com/api/user/products?page=1&limit=10000`);
       const data = await response.json();
       const products = data.products || [];
 
-      const flattened = products.flatMap((product, index) =>
-        product.variants.map((variant, vIndex) => ({
-          ...variant,
-          _id: `${product._id}_${vIndex}`,
-          productId: product._id,
-          name: product.name,
-          description: product.description,
-          category: product.category,
-          brand: product.brand,
-        }))
-      );
+      const flattened = products
+        .map((product) => {
+          if (!Array.isArray(product.variants)) return [];
+
+          return product.variants.map((variant) => ({
+            ...variant,
+            variantId: variant._id?.$oid || variant._id,
+            productId: product._id?.$oid || product._id,
+            name: product.name || '',
+            description: product.description || '',
+            shortDescription: product.shortDescription || product.details?.shortDescription || '',
+            category: product.category || '',
+            subcategory: product.subcategory || product.details?.subcategory || '',
+            brand: product.brand || '',
+            gst: product.gst ?? product.details?.gst ?? 0,
+            price: variant.price ?? 0,
+            discount: variant.discount ?? 0,
+            quantity: variant.quantity ?? 0,
+            unit: variant.unit || '',
+            warehouseStock: Array.isArray(variant.warehouseStock) ? variant.warehouseStock : [],
+            createdAt: product.createdAt?.$date || product.createdAt || null,
+          }));
+        })
+        .flat();
 
       setItems(flattened);
       setFilteredItems(flattened);
@@ -47,11 +61,9 @@ const AllProductsPage = () => {
       console.error('Error fetching items:', error);
     }
   };
-
   useEffect(() => {
     fetchItems();
   }, [page]);
-
   const filterItems = () => {
     let filtered = items;
 
@@ -60,7 +72,8 @@ const AllProductsPage = () => {
       filtered = filtered.filter(
         (item) =>
           item.name.toLowerCase().includes(lowerSearch) ||
-          item.brand?.toLowerCase().includes(lowerSearch)
+          item.brand?.toLowerCase().includes(lowerSearch) ||
+          item.shortDescription?.toLowerCase().includes(lowerSearch)
       );
     }
 
@@ -69,50 +82,68 @@ const AllProductsPage = () => {
     }
 
     if (stockFilter === 'outOfStock') {
-      filtered = filtered.filter((item) => item.stock === 0);
+      // Check if total warehouse stock is 0
+      filtered = filtered.filter((item) => {
+        if (!item.warehouseStock || item.warehouseStock.length === 0) return true;
+        const totalStock = item.warehouseStock.reduce((sum, w) => sum + (w.stock || 0), 0);
+        return totalStock === 0;
+      });
     }
 
     setFilteredItems(filtered);
   };
-
   useEffect(() => {
     filterItems();
   }, [searchTerm, selectedCategory, stockFilter, items]);
 
   const columns = [
-    { field: '_id', headerName: 'ID', width: 250 },
-    { field: 'name', headerName: 'Name', width: 150 },
-    { field: 'brand', headerName: 'Brand', width: 150 },
-    { field: 'description', headerName: 'Description', width: 250 },
-    { field: 'price', headerName: 'Price (₹)', width: 80 },
-    { field: 'discount', headerName: 'Discount', width: 80 },
-    { field: 'category', headerName: 'Category', width: 200 },
-    { field: 'stock', headerName: 'Stock', width: 70 },
+    { field: '_id', headerName: 'ID', width: 220 },
+    { field: 'name', headerName: 'Name', width: 160 },
+    { field: 'brand', headerName: 'Brand', width: 120 },
+    { field: 'description', headerName: 'Description', width: 200 },
+    { field: 'shortDescription', headerName: 'Short Desc', width: 150 },
+    { field: 'category', headerName: 'Category', width: 150 },
+    { field: 'subcategory', headerName: 'Subcategory', width: 150 },
+    { field: 'gst', headerName: 'GST %', width: 90 },
+    { field: 'price', headerName: 'Price (₹)', width: 100 },
+    { field: 'discount', headerName: 'Discount %', width: 100 },
     {
       field: 'quantity',
       headerName: 'Quantity',
-      width: 100,
+      width: 120,
+      renderCell: (params) => `${params.row.quantity} ${params.row.unit || ''}`,
+    },
+    {
+      field: 'warehouseStock',
+      headerName: 'Warehouse Stock',
+      width: 200,
       renderCell: (params) => {
-        const quantity = params.row.quantity || 0;
-        const unit = params.row.unit || '';
-        return `${quantity} ${unit}`;
+        if (!params.row.warehouseStock || params.row.warehouseStock.length === 0) {
+          return 'No Stock';
+        }
+        const tooltipText = params.row.warehouseStock.map(s => `${s.location} (${s.pincode}): ${s.stock}`).join('\n');
+        return (
+          <Tooltip title={tooltipText} arrow placement="top">
+            <Box>
+              {params.row.warehouseStock.map((ws, i) => (
+                <Typography key={i} variant="body2">
+                  {ws.location} ({ws.pincode}): {ws.stock}
+                </Typography>
+              ))}
+            </Box>
+          </Tooltip>
+        );
       },
     },
     {
-      field: 'localImageUrl',
-      headerName: 'Image',
-      width: 100,
-      renderCell: (params) =>
-        params.row.localImageUrl ? (
-          <img
-            src={`https://apii.agrivemart.com${params.row.localImageUrl}`}
-            alt={params.row.name}
-            style={{ width: '50px', height: '50px', objectFit: 'cover' }}
-          />
-        ) : (
-          <span>No Image</span>
-        ),
-    },
+      field: 'createdAt',
+      headerName: 'Created At',
+      width: 180,
+      renderCell: (params) => {
+        const date = new Date(params.row.createdAt);
+        return isNaN(date.getTime()) ? 'N/A' : date.toLocaleString();
+      },
+    }
   ];
 
   return (

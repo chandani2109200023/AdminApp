@@ -14,6 +14,7 @@ function Dashboard() {
     deliveryPersons: 0,
     outOfStock: 0,
     totalCoupons: 0,
+    totalWarehouses: 0,
   });
   const navigate = useNavigate();
 
@@ -26,6 +27,15 @@ function Dashboard() {
       } catch (error) {
         console.error('Error fetching coupons:', error);
       }
+    };
+    const fetchWarehouses = async () => {
+      try {
+        const response = await fetch('https://apii.agrivemart.com/api/wareHouse/');
+        const warehouses = await response.json();
+        setData((prev) => ({ ...prev, totalWarehouses: warehouses.length }));
+      } catch (error) {
+        console.error('Error fetching warehouses:', error);
+      };
     };
     const fetchTotalProducts = async () => {
       let page = 1;
@@ -127,9 +137,10 @@ function Dashboard() {
     fetchTotalOrders();
     fetchDeliveryPersons();
     fetchTotalCoupons();
+    fetchWarehouses();
   }, []);
 
-  const handleCardClick = (card) => {
+  const handleCardClick = async(card) => {
     switch (card) {
       case 'todayOrder':
         navigate('/today-orders', { state: { data: data.todayOrder } });
@@ -161,8 +172,50 @@ function Dashboard() {
       case 'totalCoupons':
         navigate('/coupons', { state: { data: data.totalCoupons } });
         break;
-      default:
+      case 'warehouses':
+        navigate('/warehouses'); // 👈 route to warehouse management
         break;
+      case 'bulk': // 👈 add this case
+        navigate('/bulk');
+        break;
+       case 'addWarehouse':
+      {
+        const pincode = prompt("Enter warehouse pincode:");
+        const location = prompt("Enter warehouse location:");
+        const defaultStock = prompt("Enter default stock for all products (number):", "0");
+
+        if (!pincode || !location) {
+          alert("Pincode and location are required");
+          return;
+        }
+
+        const token = localStorage.getItem('authToken');
+        try {
+          const response = await fetch('https://apii.agrivemart.com/api/admin/warehouses/add-and-update', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ pincode, location, defaultStock: Number(defaultStock) })
+          });
+
+          const result = await response.json();
+          if (response.ok) {
+            alert(`Warehouse added and products updated successfully!`);
+            setData(prev => ({ ...prev, totalWarehouses: prev.totalWarehouses + 1 }));
+          } else {
+            alert(`Error: ${result.message}`);
+          }
+        } catch (err) {
+          console.error("Error adding warehouse:", err);
+          alert("Failed to add warehouse");
+        }
+      }
+      break;
+
+    default:
+      break;
     }
   };
 
@@ -194,6 +247,24 @@ function Dashboard() {
         <DashboardCard title="Out Of Stock Products" value={data.outOfStock} bgColor="#FF5722" onClick={() => handleCardClick('outOfStockProducts')} />
         <DashboardCard title="Total Delivery Persons" value={data.deliveryPersons} bgColor="#9C27B0" onClick={() => handleCardClick('deliveryPersons')} />
         <DashboardCard title="Coupons Management" value={data.totalCoupons} bgColor="#3F51B5" onClick={() => handleCardClick('totalCoupons')} />
+        <DashboardCard
+          title="Warehouses"
+          value={data.totalWarehouses}
+          bgColor="#795548"
+          onClick={() => handleCardClick('warehouses')}
+        />
+        <DashboardCard
+          title="Bulk Upload"
+          value=""
+          bgColor="#009688"
+          onClick={() => handleCardClick('bulk')}
+        />
+        <DashboardCard
+          title="Add New Warehouse & Update Stock of all Products"
+          value=""
+          bgColor="#FF9800"
+          onClick={() => handleCardClick('addWarehouse')}
+        />
       </div>
     </div>
   );
