@@ -45,6 +45,7 @@ const AllProductsPage = () => {
             brand: product.brand || '',
             gst: product.gst ?? product.details?.gst ?? 0,
             price: variant.price ?? 0,
+            mrp: variant.mrp ?? 0,
             discount: variant.discount ?? 0,
             quantity: variant.quantity ?? 0,
             unit: variant.unit || '',
@@ -105,6 +106,7 @@ const AllProductsPage = () => {
     { field: 'category', headerName: 'Category', width: 150 },
     { field: 'subcategory', headerName: 'Subcategory', width: 150 },
     { field: 'gst', headerName: 'GST %', width: 90 },
+    { field: 'mrp', headerName: 'MRP (₹)', width: 100 },
     { field: 'price', headerName: 'Price (₹)', width: 100 },
     { field: 'discount', headerName: 'Discount %', width: 100 },
     {

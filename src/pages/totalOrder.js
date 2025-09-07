@@ -17,10 +17,8 @@ const TotalOrderPage = () => {
         }
 
         console.log('Fetched all orders:', result.data);
-
-        // Map and flatten orders to ensure proper data formatting
         const formattedOrders = result.data.map(order => ({
-          orderId: order.orderId || `N/A-${Math.random()}`, // Ensure valid row ID
+          orderId: order.orderId || `N/A-${Math.random()}`,
           status: order.status || 'N/A',
           amount: order.amount || 0,
           userId: order.address?.userId || 'N/A',
@@ -33,9 +31,16 @@ const TotalOrderPage = () => {
           deliveryPersonId: order.deliveryPerson?.id || 'N/A',
           deliveryPersonName: order.deliveryPerson?.name || 'N/A',
           deliveryPersonPhone: order.deliveryPerson?.phone || 'N/A',
-          createdAt: order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A', // Format date
-        }));
+          createdAt: order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A',
 
+          // ✅ Keep items array (with image, name, qty, unit)
+          items: order.items?.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            unit: item.unit,
+            image: item.imageUrl, // make sure API sends image URL
+          })) || [],
+        }));
         console.log('Formatted Orders:', formattedOrders);
 
         // Update state with all orders
@@ -47,7 +52,6 @@ const TotalOrderPage = () => {
 
     fetchOrders();
   }, []);
-
   const columns = [
     { field: 'orderId', headerName: 'Order ID', width: 250 },
     { field: 'status', headerName: 'Status', width: 150 },
@@ -63,8 +67,71 @@ const TotalOrderPage = () => {
     { field: 'deliveryPersonName', headerName: 'Delivery Person Name', width: 200 },
     { field: 'deliveryPersonPhone', headerName: 'Delivery Person Phone', width: 180 },
     { field: 'createdAt', headerName: 'Created At', width: 200 },
-  ];
+    // Add this column instead of your current items column
+    {
+      field: 'items',
+      headerName: 'Items',
+      width: 450,
+      renderCell: (params) => {
+        const items = params.row.items;
+        if (!items || items.length === 0) {
+          return <Typography>No items</Typography>;
+        }
 
+        return (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+              maxHeight: 120,   // ✅ limit height
+              overflowY: 'auto', // ✅ scroll if too many items
+              width: '100%',
+              pr: 1,
+              pb: 1, 
+            }}
+          >
+            {items.map((item, index) => (
+              <Box
+                key={index}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  background: '#f8f9fa',
+                  padding: '6px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid #ddd',
+                }}
+              >
+                {/* Product Image */}
+                <img
+                  src={item.image || "https://via.placeholder.com/40"}
+                  alt={item.name}
+                  width={40}
+                  height={40}
+                  style={{ borderRadius: '6px', objectFit: 'cover' }}
+                />
+
+                {/* Product details */}
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 'bold', color: '#2c3e50' }}
+                  >
+                    {item.name}
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    {item.quantity} {item.unit}
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        );
+      },
+    }
+  ];
   return (
     <Container
       sx={{
@@ -98,6 +165,7 @@ const TotalOrderPage = () => {
               rows={orders}
               columns={columns}
               pageSize={5}
+              getRowHeight={() => 'auto'} 
               getRowId={(row) => row.orderId} // Ensure row ID is correctly set
               sx={{
                 backgroundColor: '#90B0CA',

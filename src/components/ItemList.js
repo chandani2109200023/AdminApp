@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tooltip } from '@mui/material';
+import { Switch } from "@mui/material";
 import {
   Container,
   Typography,
@@ -17,35 +18,32 @@ import {
   FormControl,
   Select,
   MenuItem,
-  Radio,
-  RadioGroup,
-  FormControlLabel
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import WarehouseIcon from '@mui/icons-material/Warehouse';
 const categoryOptions = [
-  { 
-    name: "Baby Care", 
+  {
+    name: "Baby Care",
     subcategories: [
       "Baby Bath & Hygiene",
       "Baby Food",
       "Baby Gift Set",
       "Baby Skin Care",
       "Diapers & Wipes"
-    ] 
+    ]
   },
-  { 
-    name: "Bakery, Cakes & Dairy", 
+  {
+    name: "Bakery, Cakes & Dairy",
     subcategories: [
       "Breads & Cake",
       "Butter, Paneer, Cheese & Cream",
       "Milk, Milk Powder & Curd"
-    ] 
+    ]
   },
-  { 
-    name: "Beverages", 
+  {
+    name: "Beverages",
     subcategories: [
       "Coffee",
       "Fruit Juice & Squash",
@@ -55,10 +53,10 @@ const categoryOptions = [
       "Soft Drinks",
       "Tea",
       "Water"
-    ] 
+    ]
   },
-  { 
-    name: "Cleaning & Household", 
+  {
+    name: "Cleaning & Household",
     subcategories: [
       "All Purpose Cleaners",
       "Appliances & Electricals",
@@ -70,96 +68,96 @@ const categoryOptions = [
       "Party & Festive Needs",
       "Puja Needs",
       "Repellents & Fresheners"
-    ] 
+    ]
   },
-  { 
-    name: "Combo", 
+  {
+    name: "Combo",
     subcategories: [
       "Festive Combo",
       "Super Saving Combo"
-    ] 
+    ]
   },
-  { 
-    name: "Fish, Meat & Egg", 
+  {
+    name: "Fish, Meat & Egg",
     subcategories: [
       "Eggs",
       "Fresh Chicken",
       "Fresh Fish",
       "Fresh Mutton",
       "Frozen Fish"
-    ] 
+    ]
   },
-  { 
-    name: "Foodgrain", 
+  {
+    name: "Foodgrain",
     subcategories: [
       "Atta, Flours, Sooji, Besan",
       "Dal & Pulses",
       "Rice & Rice Products"
-    ] 
+    ]
   },
-  { 
-    name: "Frozen Foods", 
+  {
+    name: "Frozen Foods",
     subcategories: [
       "Non-Vegetarian",
       "Vegetarian"
-    ] 
+    ]
   },
-  { 
-    name: "Fruits & Vegetables", 
+  {
+    name: "Fruits & Vegetables",
     subcategories: [
       "Fruit & Vegetable Cleaner",
       "Fruits",
       "Vegetables"
-    ] 
+    ]
   },
-  { 
-    name: "Gift Packs", 
+  {
+    name: "Gift Packs",
     subcategories: [
       "For Couple",
       "For Her",
       "For Him",
       "For Kids",
       "Body Care"
-    ] 
+    ]
   },
-  { 
-    name: "Herbal", 
+  {
+    name: "Herbal",
     subcategories: [
       "Food & Drinks",
       "For Home",
       "Kitchen Accessories"
-    ] 
+    ]
   },
-  { 
-    name: "Kitchen & Dining Needs", 
+  {
+    name: "Kitchen & Dining Needs",
     subcategories: [
       "Steel Utensils",
       "Storage & Accessories"
-    ] 
+    ]
   },
-  { 
-    name: "Mask & Sanitisers", 
+  {
+    name: "Mask & Sanitisers",
     subcategories: [
       "Mask",
       "Sanitizers"
-    ] 
+    ]
   },
-  { 
-    name: "Membership Plan", 
+  {
+    name: "Membership Plan",
     subcategories: []
   },
-  { 
-    name: "Oil & Spices", 
+  {
+    name: "Oil & Spices",
     subcategories: [
       "Cooking Paste",
       "Herbs & Whole Spices",
       "Oil, Dalda & Ghee",
       "Powder Spices",
       "Salt & Sugar"
-    ] 
+    ]
   },
-  { 
-    name: "Personal Care", 
+  {
+    name: "Personal Care",
     subcategories: [
       "Adult Diaper",
       "Bath & Handwash",
@@ -175,10 +173,10 @@ const categoryOptions = [
       "Wellness Product",
       "Winter Care",
       "Wipes & Tissues"
-    ] 
+    ]
   },
-  { 
-    name: "Snacks & Branded Foods", 
+  {
+    name: "Snacks & Branded Foods",
     subcategories: [
       "Baking",
       "Biscuits & Cookies",
@@ -192,14 +190,14 @@ const categoryOptions = [
       "Ready to Cook",
       "Snacks & Namkeen",
       "Spread, Sauce & Ketchup"
-    ] 
+    ]
   },
-  { 
-    name: "Stationery & Office Supplies", 
+  {
+    name: "Stationery & Office Supplies",
     subcategories: [
       "Folder & Desk Supplies",
       "Notebook & Pens"
-    ] 
+    ]
   }
 ];
 const units = [
@@ -248,6 +246,7 @@ const ItemList = () => {
               subcategory: product.subcategory,
               brand: product.brand,
               gst: product.gst,
+              isLive: product.isLive || false,
               createdAt: product.createdAt?.$date || product.createdAt || null,
               warehouseStock: variant.warehouseStock || [],
             }));
@@ -274,6 +273,40 @@ const ItemList = () => {
     fetchItems();
     fetchWarehouses();
   }, []);
+  const handleToggleLive = async (item) => {
+    const token = localStorage.getItem("authToken");
+
+    try {
+      const response = await fetch(
+        `https://apii.agrivemart.com/api/admin/products/${item.productId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            isLive: !item.isLive, // toggle
+          }),
+        }
+      );
+
+      if (response.ok) {
+        setItems((prev) =>
+          prev.map((i) =>
+            i.productId === item.productId ? { ...i, isLive: !i.isLive } : i
+          )
+        );
+      } else {
+        const errText = await response.text();
+        console.error("Failed to toggle isLive:", errText);
+        alert("Failed to update live status");
+      }
+    } catch (error) {
+      console.error("Error toggling isLive:", error);
+      alert("Error updating live status");
+    }
+  };
 
   const filterItems = () => {
     let filtered = items;
@@ -522,6 +555,7 @@ const ItemList = () => {
     { field: 'category', headerName: 'Category', width: 150 },
     { field: 'subcategory', headerName: 'Subcategory', width: 150 },
     { field: 'gst', headerName: 'GST %', width: 90 },
+    { field: 'mrp', headerName: 'MRp (₹)', width: 100 },
     { field: 'price', headerName: 'Price (₹)', width: 100 },
     { field: 'discount', headerName: 'Discount %', width: 100 },
     {
@@ -589,6 +623,18 @@ const ItemList = () => {
         ) : (
           <span>No Image</span>
         ),
+    },
+    {
+      field: "isLive",
+      headerName: "Live",
+      width: 120,
+      renderCell: (params) => (
+        <Switch
+          checked={params.row.isLive}
+          onChange={() => handleToggleLive(params.row)}
+          color="success"
+        />
+      ),
     },
     {
       field: 'createdAt',
@@ -820,21 +866,23 @@ const ItemList = () => {
               />
 
               {/* Price */}
-              <TextField
-                label="Price (₹)"
-                type="number"
-                fullWidth
-                value={editItem?.price || 0}
-                onChange={(e) => setEditItem({ ...editItem, price: Number(e.target.value) })}
-                margin="normal"
-                required
-              />
+              {/* MRP */}
               <TextField
                 label="MRP (₹)"
                 type="number"
                 fullWidth
                 value={editItem?.mrp || 0}
-                onChange={(e) => setEditItem({ ...editItem, price: Number(e.target.value) })}
+                onChange={(e) => {
+                  const newMrp = Number(e.target.value) || 0;
+                  const discountVal = editItem?.discount || 0;
+                  const calculatedPrice = newMrp - (newMrp * discountVal / 100);
+
+                  setEditItem({
+                    ...editItem,
+                    mrp: newMrp,
+                    price: Number(calculatedPrice.toFixed(2)), // auto update price
+                  });
+                }}
                 margin="normal"
                 required
               />
@@ -845,8 +893,28 @@ const ItemList = () => {
                 type="number"
                 fullWidth
                 value={editItem?.discount || 0}
-                onChange={(e) => setEditItem({ ...editItem, discount: Number(e.target.value) })}
+                onChange={(e) => {
+                  const newDiscount = Number(e.target.value) || 0;
+                  const mrpVal = editItem?.mrp || 0;
+                  const calculatedPrice = mrpVal - (mrpVal * newDiscount / 100);
+
+                  setEditItem({
+                    ...editItem,
+                    discount: newDiscount,
+                    price: Number(calculatedPrice.toFixed(2)), // auto update price
+                  });
+                }}
                 margin="normal"
+              />
+
+              {/* Price (read-only) */}
+              <TextField
+                label="Price (₹)"
+                type="number"
+                fullWidth
+                value={editItem?.price || 0}
+                margin="normal"
+                InputProps={{ readOnly: true }}
               />
               {/* Quantity + Unit */}
               <Box sx={{ display: "flex", gap: 2 }}>

@@ -8,7 +8,6 @@ import {
   Modal,
   MenuItem,
   FormControl,
-  TextField,
   InputLabel,
   Button,
 } from '@mui/material';
@@ -39,6 +38,9 @@ function TodayOrdersPage() {
 
       const flattenedOrders = todayOrders?.map(order => ({
         ...order,
+        orderId: order.orderId || `N/A-${Math.random()}`,
+        status: order.status || 'N/A',
+        amount: order.amount || 0,
         userId: order.address?.userId || 'N/A',
         userName: order.address?.fullName || 'N/A',
         userPhoneNumber: order.address?.phoneNumber || 'N/A',
@@ -46,9 +48,18 @@ function TodayOrdersPage() {
         pincode: order.address?.pincode || 'N/A',
         houseDetails: order.address?.houseDetails || 'N/A',
         roadDetails: order.address?.roadDetails || 'N/A',
+        deliveryPersonId: order.deliveryPerson?.id || 'N/A',
         deliveryPersonName: order.deliveryPerson?.name || 'N/A',
         deliveryPersonPhone: order.deliveryPerson?.phone || 'N/A',
-        deliveryPersonId: order.deliveryPerson?.id || 'N/A',
+        createdAt: order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A',
+
+        // ✅ Normalize items with imageUrl
+        items: order.items?.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
+          image: item.imageUrl, // ✅ map imageUrl → image
+        })) || [],
       }));
 
       setOrders(flattenedOrders);
@@ -100,7 +111,6 @@ function TodayOrdersPage() {
     setSelectedStatus(order?.status || '');
     setOpenUpdateStatusModal(true);
   };
-
   const handleUpdateStatus = async () => {
     if (!selectedDeliveryPersonId) {
       alert('Delivery Person is required');
@@ -111,13 +121,26 @@ function TodayOrdersPage() {
       const response = await fetch(`https://apii.agrivemart.com/api/delivery/status/${selectedOrderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: selectedStatus, orderId: selectedOrderId, deliveryPersonId: selectedDeliveryPersonId }),
+        body: JSON.stringify({
+          status: selectedStatus,
+          orderId: selectedOrderId,
+          deliveryPersonId: selectedDeliveryPersonId
+        }),
       });
 
       const data = await response.json();
       if (response.ok) {
         alert(data.message);
-        fetchOrders();
+
+        // ✅ Update orders state locally
+        setOrders(prevOrders =>
+          prevOrders.map(order =>
+            order.orderId === selectedOrderId
+              ? { ...order, status: selectedStatus }
+              : order
+          )
+        );
+
         setOpenUpdateStatusModal(false);
       } else {
         alert(data.message || 'Failed to update status');
@@ -126,32 +149,93 @@ function TodayOrdersPage() {
       console.error('Error updating status:', error);
     }
   };
-
   const columns = [
     { field: 'orderId', headerName: 'Order ID', width: 200 },
     { field: 'status', headerName: 'Status', width: 150 },
     { field: 'amount', headerName: 'Amount (₹)', width: 120 },
     { field: 'userName', headerName: 'User Name', width: 150 },
     { field: 'deliveryPersonName', headerName: 'Delivery Person', width: 200 },
+    { field: 'deliveryPersonPhone', headerName: 'Delivery Person Phone', width: 200 },
+    {
+      field: 'items',
+      headerName: 'Items',
+      width: 450,
+      renderCell: (params) => {
+        const items = params.row.items;
+        if (!items || items.length === 0) {
+          return <Typography>No items</Typography>;
+        }
+        return (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+              maxHeight: 120,
+              overflowY: 'auto',
+              width: '100%',
+              pr: 1,
+              pb: 1,
+            }}
+          >
+            {items.map((item, index) => (
+              <Box
+                key={index}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  background: '#f8f9fa',
+                  padding: '6px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid #ddd',
+                }}
+              >
+                <img
+                  src={item.image || 'https://via.placeholder.com/40'}
+                  alt={item.name}
+                  width={40}
+                  height={40}
+                  style={{ borderRadius: '6px', objectFit: 'cover' }}
+                />
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#2c3e50' }}>
+                    {item.name}
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    {item.quantity} {item.unit}
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        );
+      },
+    },
     {
       field: 'accept',
       headerName: 'Accept Order',
       width: 160,
-      renderCell: (params) => (
+      renderCell: (params) =>
         params.row.status === 'pending' ? (
           <Button variant="contained" onClick={() => { setSelectedOrderId(params.row.orderId); setOpenModal(true); }}>Accept</Button>
-        ) : 'Accepted'
-      ),
+        ) : 'Accepted',
     },
     {
       field: 'updateStatus',
       headerName: 'Update Status',
       width: 180,
-      renderCell: (params) => (
-        params.row.status !== 'delivered' ? (
-          <Button variant="contained" onClick={() => handleStatusChange(params.row.orderId, params.row.deliveryPersonId)}>Update Status</Button>
-        ) : 'N/A'
-      ),
+      renderCell: (params) => {
+        const status = params.row.status;
+        return status !== 'delivered' ? (
+          <Button
+            variant="contained"
+            onClick={() => handleStatusChange(params.row.orderId, params.row.deliveryPersonId)}
+          >
+            {status === 'pending' ? 'Update Status' : status.charAt(0).toUpperCase() + status.slice(1)}
+          </Button>
+        ) : 'Delivered';
+      },
     },
   ];
 
@@ -167,6 +251,7 @@ function TodayOrdersPage() {
               columns={columns}
               pageSize={5}
               getRowId={(row) => row.orderId}
+              getRowHeight={() => 'auto'} // ✅ expand if needed
               sx={{
                 backgroundColor: '#90B0CA',
                 color: '#1C2833',
@@ -179,6 +264,7 @@ function TodayOrdersPage() {
           <Typography color="textSecondary" align="center">No orders available</Typography>
         )}
 
+        {/* Accept Order Modal */}
         <Modal open={openModal} onClose={() => setOpenModal(false)}>
           <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 400, bgcolor: 'white', p: 3, borderRadius: 2 }}>
             <Typography variant="h6" gutterBottom>Select Delivery Person</Typography>
@@ -197,6 +283,7 @@ function TodayOrdersPage() {
           </Box>
         </Modal>
 
+        {/* Update Status Modal */}
         <Modal open={openUpdateStatusModal} onClose={() => setOpenUpdateStatusModal(false)}>
           <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 400, bgcolor: 'white', p: 3, borderRadius: 2 }}>
             <Typography variant="h6" gutterBottom>Update Order Status</Typography>

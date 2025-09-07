@@ -140,7 +140,7 @@ function Dashboard() {
     fetchWarehouses();
   }, []);
 
-  const handleCardClick = async(card) => {
+  const handleCardClick = async (card) => {
     switch (card) {
       case 'todayOrder':
         navigate('/today-orders', { state: { data: data.todayOrder } });
@@ -178,44 +178,82 @@ function Dashboard() {
       case 'bulk': // 👈 add this case
         navigate('/bulk');
         break;
-       case 'addWarehouse':
-      {
-        const pincode = prompt("Enter warehouse pincode:");
+      case 'addWarehouse': {
         const location = prompt("Enter warehouse location:");
-        const defaultStock = prompt("Enter default stock for all products (number):", "0");
-
-        if (!pincode || !location) {
-          alert("Pincode and location are required");
+        if (!location) {
+          alert("Location is required");
           return;
         }
 
         const token = localStorage.getItem('authToken');
+
         try {
-          const response = await fetch('https://apii.agrivemart.com/api/admin/warehouses/add-and-update', {
+          // Fetch all warehouses
+          const checkResponse = await fetch('https://apii.agrivemart.com/api/wareHouse/', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const warehouses = await checkResponse.json();
+
+          // Always ask for pincode
+          let pincode = prompt("Enter warehouse pincode:");
+          if (!pincode) {
+            alert("Pincode is required");
+            return;
+          }
+          pincode = Number(pincode);
+
+          // Check if warehouse with same location and pincode exists
+          const existingWarehouse = warehouses.find(
+            w => w.location.toLowerCase() === location.toLowerCase() && w.pincode === pincode
+          );
+
+          if (existingWarehouse) {
+            alert(`Warehouse with location "${location}" and pincode ${pincode} already exists.`);
+            return;
+          }
+
+          // Check if any warehouse exists with the same location (for stock copy)
+          const sameLocationWarehouse = warehouses.find(
+            w => w.location.toLowerCase() === location.toLowerCase()
+          );
+
+          let defaultStock = 0;
+          if (!sameLocationWarehouse) {
+            // If both location and pincode are new, ask for stock
+            const stockInput = prompt("Enter default stock for all products (number):", "0");
+            defaultStock = stockInput ? Number(stockInput) : 0;
+          } else {
+            alert(`Location "${location}" exists. Stock will be copied from existing warehouse.`);
+          }
+
+          // Send request to backend
+          const response = await fetch('https://apii.agrivemart.com/api/wareHouse/add-and-update', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ pincode, location, defaultStock: Number(defaultStock) })
+            body: JSON.stringify({ location, pincode, defaultStock })
           });
 
           const result = await response.json();
+
           if (response.ok) {
-            alert(`Warehouse added and products updated successfully!`);
+            alert(`Warehouse added/updated successfully!`);
             setData(prev => ({ ...prev, totalWarehouses: prev.totalWarehouses + 1 }));
           } else {
             alert(`Error: ${result.message}`);
           }
+
         } catch (err) {
-          console.error("Error adding warehouse:", err);
-          alert("Failed to add warehouse");
+          console.error("Error adding/updating warehouse:", err);
+          alert("Failed to add/update warehouse");
         }
       }
-      break;
+        break;
 
-    default:
-      break;
+      default:
+        break;
     }
   };
 
