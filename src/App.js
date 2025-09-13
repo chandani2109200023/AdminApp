@@ -20,6 +20,9 @@ import DeliveryPersons from './pages/deliverPersons';
 import TotalOrderPage from './pages/totalOrder';
 import OutOfStockProducts from './pages/outOfStock';
 import CouponManagementPage from './pages/couponManagement';
+import InvoicePage from './pages/invoice';
+import BannerImagePage from './pages/bannerImageManagement';
+import DealImagePage from './pages/dealImageManagement';
 
 const App = () => (
   <ItemProvider> {/* Wrap everything with the provider */}
@@ -34,6 +37,9 @@ const App = () => (
             <Route path="/bulk" element={<BulkUploadProducts />} />
             <Route path="/upload" element={<UploadItem />} />
             <Route path="/items" element={<ItemList />} />
+            <Route path="/bannerImage" element={<BannerImagePage />} />
+            <Route path="/dealImage" element={<DealImagePage />} />
+            <Route path="/invoice" element={<InvoicePage />} />
             <Route path="/deliveryPersons" element={<DeliveryPersons />} />
             <Route path="/today-orders" element={<TodayOrdersPage />} />
             <Route path="/all-products" element={<AllProductsPage />} />

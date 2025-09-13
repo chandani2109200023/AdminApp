@@ -178,6 +178,12 @@ function Dashboard() {
       case 'bulk': // 👈 add this case
         navigate('/bulk');
         break;
+      case 'bannerImage': // 👈 add this case
+        navigate('/bannerImage');
+        break;
+      case 'dealImage': // 👈 add this case
+        navigate('/dealImage');
+        break;
       case 'addWarehouse': {
         const location = prompt("Enter warehouse location:");
         if (!location) {
@@ -296,6 +302,18 @@ function Dashboard() {
           value=""
           bgColor="#009688"
           onClick={() => handleCardClick('bulk')}
+        />
+        <DashboardCard
+          title="Upload Banner Image"
+          value=""
+          bgColor="#89bb0cff"
+          onClick={() => handleCardClick('bannerImage')}
+        />
+        <DashboardCard
+          title="Upload Deal Image"
+          value=""
+          bgColor="#d81818ff"
+          onClick={() => handleCardClick('dealImage')}
         />
         <DashboardCard
           title="Add New Warehouse & Update Stock of all Products"

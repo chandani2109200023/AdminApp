@@ -34,33 +34,47 @@ function TodayOrdersPage() {
       const response = await fetch('https://apii.agrivemart.com/api/delivery/orders');
       const data = await response.json();
       const today = new Date().toISOString().split('T')[0];
-      const todayOrders = data.data?.filter(order => new Date(order.createdAt).toISOString().split('T')[0] === today);
 
-      const flattenedOrders = todayOrders?.map(order => ({
-        ...order,
-        orderId: order.orderId || `N/A-${Math.random()}`,
-        status: order.status || 'N/A',
-        amount: order.amount || 0,
-        userId: order.address?.userId || 'N/A',
-        userName: order.address?.fullName || 'N/A',
-        userPhoneNumber: order.address?.phoneNumber || 'N/A',
-        state: order.address?.state || 'N/A',
-        pincode: order.address?.pincode || 'N/A',
-        houseDetails: order.address?.houseDetails || 'N/A',
-        roadDetails: order.address?.roadDetails || 'N/A',
-        deliveryPersonId: order.deliveryPerson?.id || 'N/A',
-        deliveryPersonName: order.deliveryPerson?.name || 'N/A',
-        deliveryPersonPhone: order.deliveryPerson?.phone || 'N/A',
-        createdAt: order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A',
+      const todayOrders = data.data?.filter(
+        order => new Date(order.createdAt).toISOString().split('T')[0] === today
+      );
 
-        // ✅ Normalize items with imageUrl
-        items: order.items?.map(item => ({
-          name: item.name,
-          quantity: item.quantity,
-          unit: item.unit,
-          image: item.imageUrl, // ✅ map imageUrl → image
-        })) || [],
-      }));
+      const flattenedOrders = todayOrders?.map(order => {
+        const createdAtDate = order.createdAt ? new Date(order.createdAt) : null;
+
+        return {
+          ...order,
+          orderId: order.orderId || `N/A-${Math.random()}`,
+          status: order.status || 'N/A',
+          amount: order.amount || 0,
+          userId: order.address?.userId || 'N/A',
+          userName: order.address?.fullName || 'N/A',
+          userPhoneNumber: order.address?.phoneNumber || 'N/A',
+          state: order.address?.state || 'N/A',
+          pincode: order.address?.pincode || 'N/A',
+          houseDetails: order.address?.houseDetails || 'N/A',
+          roadDetails: order.address?.roadDetails || 'N/A',
+          deliveryPersonId: order.deliveryPerson?.id || '',
+          deliveryPersonName: order.deliveryPerson?.name || 'N/A',
+          deliveryPersonPhone: order.deliveryPerson?.phone || 'N/A',
+
+          // ✅ keep raw ISO for sorting
+          createdAt: createdAtDate ? createdAtDate.toISOString() : null,
+
+          // ✅ formatted string for UI
+          createdAtFormatted: createdAtDate
+            ? createdAtDate.toLocaleString()
+            : 'N/A',
+
+          items:
+            order.items?.map(item => ({
+              name: item.name,
+              quantity: item.quantity,
+              unit: item.unit,
+              image: item.imageUrl,
+            })) || [],
+        };
+      });
 
       setOrders(flattenedOrders);
     } catch (error) {
@@ -88,7 +102,10 @@ function TodayOrdersPage() {
       const response = await fetch('https://apii.agrivemart.com/api/delivery/accept', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: selectedOrderId, deliveryPersonId: selectedDeliveryPersonId }),
+        body: JSON.stringify({
+          orderId: selectedOrderId,
+          deliveryPersonId: selectedDeliveryPersonId,
+        }),
       });
 
       const data = await response.json();
@@ -111,6 +128,7 @@ function TodayOrdersPage() {
     setSelectedStatus(order?.status || '');
     setOpenUpdateStatusModal(true);
   };
+
   const handleUpdateStatus = async () => {
     if (!selectedDeliveryPersonId) {
       alert('Delivery Person is required');
@@ -118,29 +136,27 @@ function TodayOrdersPage() {
     }
 
     try {
-      const response = await fetch(`https://apii.agrivemart.com/api/delivery/status/${selectedOrderId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: selectedStatus,
-          orderId: selectedOrderId,
-          deliveryPersonId: selectedDeliveryPersonId
-        }),
-      });
+      const response = await fetch(
+        `https://apii.agrivemart.com/api/delivery/status/${selectedOrderId}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: selectedStatus,
+            orderId: selectedOrderId,
+            deliveryPersonId: selectedDeliveryPersonId,
+          }),
+        }
+      );
 
       const data = await response.json();
       if (response.ok) {
         alert(data.message);
-
-        // ✅ Update orders state locally
-        setOrders(prevOrders =>
-          prevOrders.map(order =>
-            order.orderId === selectedOrderId
-              ? { ...order, status: selectedStatus }
-              : order
+        setOrders(prev =>
+          prev.map(order =>
+            order.orderId === selectedOrderId ? { ...order, status: selectedStatus } : order
           )
         );
-
         setOpenUpdateStatusModal(false);
       } else {
         alert(data.message || 'Failed to update status');
@@ -149,18 +165,58 @@ function TodayOrdersPage() {
       console.error('Error updating status:', error);
     }
   };
+
   const columns = [
-    { field: 'orderId', headerName: 'Order ID', width: 200 },
-    { field: 'status', headerName: 'Status', width: 150 },
-    { field: 'amount', headerName: 'Amount (₹)', width: 120 },
-    { field: 'userName', headerName: 'User Name', width: 150 },
-    { field: 'deliveryPersonName', headerName: 'Delivery Person', width: 200 },
-    { field: 'deliveryPersonPhone', headerName: 'Delivery Person Phone', width: 200 },
+    {
+      field: 'orderId',
+      headerName: 'Order ID',
+      width: 200,
+      sortable: true,
+      renderCell: params => (
+        <Button
+          color="primary"
+          onClick={() =>
+            window.open(
+              `/invoice/${encodeURIComponent(JSON.stringify(params.row))}`,
+              '_blank'
+            )
+          }
+        >
+          {params.row.orderId}
+        </Button>
+      ),
+    },
+    { field: 'status', headerName: 'Status', width: 150, sortable: true },
+    { field: 'amount', headerName: 'Amount (₹)', width: 120, sortable: true },
+    { field: 'userName', headerName: 'User Name', width: 150, sortable: true },
+    {
+      field: 'deliveryPersonName',
+      headerName: 'Delivery Person',
+      width: 200,
+      sortable: true,
+    },
+    {
+      field: 'deliveryPersonPhone',
+      headerName: 'Delivery Person Phone',
+      width: 200,
+    },
+   {
+  field: "createdAt",
+  headerName: "Created At",
+  width: 200,
+  valueFormatter: (params) => {
+    if (!params.value) return "N/A";
+    const date = new Date(params.value);
+    return date.toLocaleString(); // display readable
+  },
+  sortComparator: (v1, v2) => new Date(v1) - new Date(v2), // ensure correct sorting
+},
     {
       field: 'items',
       headerName: 'Items',
       width: 450,
-      renderCell: (params) => {
+      sortable: false,
+      renderCell: params => {
         const items = params.row.items;
         if (!items || items.length === 0) {
           return <Typography>No items</Typography>;
@@ -199,7 +255,10 @@ function TodayOrdersPage() {
                   style={{ borderRadius: '6px', objectFit: 'cover' }}
                 />
                 <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#2c3e50' }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 'bold', color: '#2c3e50' }}
+                  >
                     {item.name}
                   </Typography>
                   <Typography variant="caption" color="textSecondary">
@@ -216,33 +275,64 @@ function TodayOrdersPage() {
       field: 'accept',
       headerName: 'Accept Order',
       width: 160,
-      renderCell: (params) =>
+      sortable: false,
+      renderCell: params =>
         params.row.status === 'pending' ? (
-          <Button variant="contained" onClick={() => { setSelectedOrderId(params.row.orderId); setOpenModal(true); }}>Accept</Button>
-        ) : 'Accepted',
+          <Button
+            variant="contained"
+            onClick={() => {
+              setSelectedOrderId(params.row.orderId);
+              setOpenModal(true);
+            }}
+          >
+            Accept
+          </Button>
+        ) : (
+          'Accepted'
+        ),
     },
     {
       field: 'updateStatus',
       headerName: 'Update Status',
       width: 180,
-      renderCell: (params) => {
+      sortable: false,
+      renderCell: params => {
         const status = params.row.status;
         return status !== 'delivered' ? (
           <Button
             variant="contained"
-            onClick={() => handleStatusChange(params.row.orderId, params.row.deliveryPersonId)}
+            onClick={() =>
+              handleStatusChange(params.row.orderId, params.row.deliveryPersonId)
+            }
           >
-            {status === 'pending' ? 'Update Status' : status.charAt(0).toUpperCase() + status.slice(1)}
+            {status === 'pending'
+              ? 'Update Status'
+              : status.charAt(0).toUpperCase() + status.slice(1)}
           </Button>
-        ) : 'Delivered';
+        ) : (
+          'Delivered'
+        );
       },
     },
   ];
 
   return (
-    <Container sx={{ padding: 2, backgroundColor: '#2C3E50', borderRadius: 2, width: '100%', minHeight: '100vh' }}>
+    <Container
+      sx={{
+        padding: 2,
+        backgroundColor: '#2C3E50',
+        borderRadius: 2,
+        width: '100%',
+        minHeight: '100vh',
+      }}
+    >
       <CardContent>
-        <Typography variant="h4" sx={{ color: '#F1C40F', textAlign: 'center', marginBottom: 2 }}>Today's Orders</Typography>
+        <Typography
+          variant="h4"
+          sx={{ color: '#F1C40F', textAlign: 'center', marginBottom: 2 }}
+        >
+          Today's Orders
+        </Typography>
 
         {orders.length > 0 ? (
           <Box sx={{ height: 500, width: '100%' }}>
@@ -250,58 +340,129 @@ function TodayOrdersPage() {
               rows={orders}
               columns={columns}
               pageSize={5}
-              getRowId={(row) => row.orderId}
-              getRowHeight={() => 'auto'} // ✅ expand if needed
+              getRowId={row => row.orderId}
+              getRowHeight={() => 'auto'}
               sx={{
                 backgroundColor: '#90B0CA',
                 color: '#1C2833',
                 '.MuiDataGrid-columnHeaders': { backgroundColor: '#1F618D' },
                 '.MuiDataGrid-footerContainer': { backgroundColor: '#1F618D' },
               }}
+              initialState={{
+                sorting: { sortModel: [{ field: 'createdAt', sort: 'desc' }] }, // ✅ newest first
+              }}
             />
           </Box>
         ) : (
-          <Typography color="textSecondary" align="center">No orders available</Typography>
+          <Typography color="textSecondary" align="center">
+            No orders available
+          </Typography>
         )}
 
         {/* Accept Order Modal */}
         <Modal open={openModal} onClose={() => setOpenModal(false)}>
-          <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 400, bgcolor: 'white', p: 3, borderRadius: 2 }}>
-            <Typography variant="h6" gutterBottom>Select Delivery Person</Typography>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 400,
+              bgcolor: 'white',
+              p: 3,
+              borderRadius: 2,
+            }}
+          >
+            <Typography variant="h6" gutterBottom>
+              Select Delivery Person
+            </Typography>
             <FormControl fullWidth sx={{ marginBottom: 2 }}>
               <InputLabel>Delivery Person</InputLabel>
-              <Select value={selectedDeliveryPersonId} onChange={(e) => setSelectedDeliveryPersonId(e.target.value)}>
-                {deliveryPersons.map((person) => (
-                  <MenuItem key={person.userId} value={person.userId}>{person.name} - {person.phone}</MenuItem>
-                ))}
+              <Select
+                value={selectedDeliveryPersonId}
+                onChange={e => setSelectedDeliveryPersonId(e.target.value)}
+              >
+                {deliveryPersons.length > 0 ? (
+                  deliveryPersons.map(person => (
+                    <MenuItem key={person.id} value={person.id}>
+                      {person.name} - {person.phone}
+                    </MenuItem>
+                  ))
+                ) : (
+                  <MenuItem disabled>No delivery persons available</MenuItem>
+                )}
               </Select>
             </FormControl>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Button variant="contained" color="secondary" onClick={() => setOpenModal(false)}>Cancel</Button>
-              <Button variant="contained" color="primary" onClick={handleAcceptOrder}>Accept Order</Button>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={() => setOpenModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleAcceptOrder}
+              >
+                Accept Order
+              </Button>
             </Box>
           </Box>
         </Modal>
 
         {/* Update Status Modal */}
-        <Modal open={openUpdateStatusModal} onClose={() => setOpenUpdateStatusModal(false)}>
-          <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 400, bgcolor: 'white', p: 3, borderRadius: 2 }}>
-            <Typography variant="h6" gutterBottom>Update Order Status</Typography>
+        <Modal
+          open={openUpdateStatusModal}
+          onClose={() => setOpenUpdateStatusModal(false)}
+        >
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 400,
+              bgcolor: 'white',
+              p: 3,
+              borderRadius: 2,
+            }}
+          >
+            <Typography variant="h6" gutterBottom>
+              Update Order Status
+            </Typography>
             <FormControl fullWidth sx={{ marginBottom: 2 }}>
               <InputLabel>Status</InputLabel>
-              <Select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
+              <Select
+                value={selectedStatus}
+                onChange={e => setSelectedStatus(e.target.value)}
+              >
                 {statusOptions.map(status => (
-                  <MenuItem key={status} value={status}>{status}</MenuItem>
+                  <MenuItem key={status} value={status}>
+                    {status}
+                  </MenuItem>
                 ))}
               </Select>
             </FormControl>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Button variant="contained" color="secondary" onClick={() => setOpenUpdateStatusModal(false)}>Cancel</Button>
-              <Button variant="contained" color="primary" onClick={handleUpdateStatus}>Update Status</Button>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={() => setOpenUpdateStatusModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleUpdateStatus}
+              >
+                Update Status
+              </Button>
             </Box>
           </Box>
         </Modal>
-
       </CardContent>
     </Container>
   );
