@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Box, CardContent, Button, Modal, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
+import {
+  Container,
+  Typography,
+  Box,
+  CardContent,
+  Button,
+  Modal,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+} from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 
 function PendingOrdersPage() {
@@ -8,6 +19,8 @@ function PendingOrdersPage() {
   const [deliveryPersonId, setDeliveryPersonId] = useState('');
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [deliveryPersons, setDeliveryPersons] = useState([]);
+
+  // ✅ Fetch delivery persons
   const fetchDeliveryPersons = async () => {
     try {
       const response = await fetch('https://apii.agrivemart.com/api/delivery/delivery-persons');
@@ -21,7 +34,8 @@ function PendingOrdersPage() {
       console.error('Error fetching delivery persons:', error);
     }
   };
-  // Fetch orders function
+
+  // ✅ Fetch pending orders
   const fetchOrders = async () => {
     try {
       const response = await fetch('https://apii.agrivemart.com/api/delivery/orders');
@@ -29,42 +43,50 @@ function PendingOrdersPage() {
 
       console.log('Fetched orders:', data);
 
-      // Filter the orders where status is 'pending'
-      const pendingOrders = data.data?.filter(order => order.status === 'pending');
-      // Flatten the filtered orders data
-      const flattenedOrders = pendingOrders?.map(order => ({
-        ...order,
-        orderId: order.orderId || `N/A-${Math.random()}`,
-        status: order.status || 'N/A',
-        amount: order.amount || 0,
-        userId: order.address?.userId || 'N/A',
-        userName: order.address?.fullName || 'N/A',
-        userPhoneNumber: order.address?.phoneNumber || 'N/A',
-        state: order.address?.state || 'N/A',
-        pincode: order.address?.pincode || 'N/A',
-        houseDetails: order.address?.houseDetails || 'N/A',
-        roadDetails: order.address?.roadDetails || 'N/A',
-        deliveryPersonId: order.deliveryPerson?.id || 'N/A',
-        deliveryPersonName: order.deliveryPerson?.name || 'N/A',
-        deliveryPersonPhone: order.deliveryPerson?.phone || 'N/A',
-        createdAt: order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A',
-        items: order.items?.map(item => ({
-          name: item.name,
-          quantity: item.quantity,
-          unit: item.unit,
-          image: item.imageUrl || item.image || "https://via.placeholder.com/40",
-        })) || [],
-      }));
+      const pendingOrders = data.data?.filter((order) => order.status === 'pending') || [];
+
+      const flattenedOrders = pendingOrders.map((order) => {
+        const createdAtDate = order.createdAt ? new Date(order.createdAt) : null;
+        return {
+          ...order,
+          orderId: order.orderId || `N/A-${Math.random()}`,
+          status: order.status || 'N/A',
+          amount: order.amount || 0,
+          userId: order.address?.userId || 'N/A',
+          userName: order.address?.fullName || 'N/A',
+          userPhoneNumber: order.address?.phoneNumber || 'N/A',
+          state: order.address?.state || 'N/A',
+          pincode: order.address?.pincode || 'N/A',
+          houseDetails: order.address?.houseDetails || 'N/A',
+          roadDetails: order.address?.roadDetails || 'N/A',
+          deliveryPersonId: order.deliveryPerson?.id || 'N/A',
+          deliveryPersonName: order.deliveryPerson?.name || 'N/A',
+          deliveryPersonPhone: order.deliveryPerson?.phone || 'N/A',
+          createdAt: createdAtDate ? createdAtDate.getTime() : null,
+          createdAtFormatted: createdAtDate ? createdAtDate.toLocaleString() : 'N/A',
+          items:
+            order.items?.map((item) => ({
+              name: item.name,
+              quantity: item.quantity,
+              unit: item.unit,
+              image: item.imageUrl || item.image || 'https://via.placeholder.com/40',
+            })) || [],
+        };
+      });
+
       console.log('Flattened Pending Orders:', flattenedOrders);
       setOrders(flattenedOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
     }
   };
+
   useEffect(() => {
     fetchOrders();
     fetchDeliveryPersons();
   }, []);
+
+  // ✅ Handle order acceptance
   const handleAcceptOrder = async () => {
     if (!deliveryPersonId) {
       alert('Please select a delivery person');
@@ -85,10 +107,7 @@ function PendingOrdersPage() {
       if (response.ok) {
         alert(data.message || 'Order accepted');
 
-        // ✅ find the selected delivery person from state
-        const selectedPerson = deliveryPersons.find(
-          (p) => p.userId === deliveryPersonId
-        );
+        const selectedPerson = deliveryPersons.find((p) => p.userId === deliveryPersonId);
 
         setOrders((prevOrders) =>
           prevOrders.map((order) =>
@@ -105,7 +124,7 @@ function PendingOrdersPage() {
         );
 
         setOpenModal(false);
-        fetchOrders(); // refresh from backend
+        fetchOrders();
       } else {
         alert(data.message || 'Failed to accept the order');
       }
@@ -114,18 +133,53 @@ function PendingOrdersPage() {
       alert('Error accepting order');
     }
   };
+
+  // ✅ DataGrid columns
   const columns = [
-    { field: 'orderId', headerName: 'Order ID', width: 250 },
-    { field: 'status', headerName: 'Status', width: 150 },
-    { field: 'amount', headerName: 'Amount (₹)', width: 150 },
-    { field: 'userId', headerName: 'User Id', width: 150 },
-    { field: 'userName', headerName: 'User Name', width: 150 },
-    { field: 'userPhoneNumber', headerName: 'User PhoneNumber', width: 150 },
-    { field: 'state', headerName: 'State', width: 150 },
+    {
+      field: 'orderId',
+      headerName: 'Order ID',
+      width: 250,
+      sortable: true,
+      renderCell: (params) => (
+        <Button
+          variant="text"
+          color="primary"
+          onClick={() => {
+            // Open invoice in a new browser tab
+            window.open(`https://apii.agrivemart.com/api/invoice/${params.row.orderId}`, '_blank');
+          }}
+        >
+          {params.value}
+        </Button>
+      ),
+    },
+
+    { field: 'status', headerName: 'Status', width: 150, sortable: true },
+    { field: 'amount', headerName: 'Amount (₹)', width: 150, sortable: true },
+    { field: 'userId', headerName: 'User Id', width: 150, sortable: true },
+    { field: 'userName', headerName: 'User Name', width: 150, sortable: true },
+    { field: 'userPhoneNumber', headerName: 'User PhoneNumber', width: 150, sortable: true },
+    { field: 'state', headerName: 'State', width: 150, sortable: true },
     { field: 'pincode', headerName: 'Pincode', width: 150 },
     { field: 'houseDetails', headerName: 'House Details', width: 250 },
     { field: 'roadDetails', headerName: 'Road Details', width: 250 },
-    { field: 'createdAt', headerName: 'Created At', width: 180 },
+    {
+      field: "createdAt",
+      headerName: "Created At",
+      width: 200,
+      hide: true,
+      valueFormatter: (params) => {
+        if (!params.value) return "N/A";
+        return new Date(Number(params.value)).toLocaleString();
+      },
+      sortComparator: (v1, v2) => v1 - v2, // still numeric
+    },
+    {
+      field: "createdAtFormatted",
+      headerName: "Date",
+      width: 200,
+    },
     {
       field: 'items',
       headerName: 'Items',
@@ -162,7 +216,7 @@ function PendingOrdersPage() {
                 }}
               >
                 <img
-                  src={item.image || 'https://via.placeholder.com/40'}
+                  src={item.image}
                   alt={item.name}
                   width={40}
                   height={40}
@@ -186,22 +240,21 @@ function PendingOrdersPage() {
       field: 'accept',
       headerName: 'Accept Order',
       width: 150,
-      renderCell: (params) => {
-        return params.row.status === 'pending' ? (
+      renderCell: (params) =>
+        params.row.status === 'pending' ? (
           <Button
             variant="contained"
             color="primary"
             onClick={() => {
-              setSelectedOrderId(params.row.orderId); // Store the selected order ID
-              setOpenModal(true); // Open the modal
+              setSelectedOrderId(params.row.orderId);
+              setOpenModal(true);
             }}
           >
             Accept
           </Button>
         ) : (
           'N/A'
-        );
-      },
+        ),
     },
   ];
 
@@ -225,9 +278,9 @@ function PendingOrdersPage() {
           sx={{
             color: '#F1C40F',
             textAlign: 'center',
-            width: '100%', // Ensures it takes full width
+            width: '100%',
             display: 'flex',
-            justifyContent: 'center', // Centers content horizontally
+            justifyContent: 'center',
           }}
         >
           Pending Orders
@@ -247,6 +300,9 @@ function PendingOrdersPage() {
                 '.MuiDataGrid-columnHeaders': { backgroundColor: '#1F618D' },
                 '.MuiDataGrid-footerContainer': { backgroundColor: '#1F618D' },
               }}
+              initialState={{
+                sorting: { sortModel: [{ field: 'createdAt', sort: 'desc' }] }, // ✅ newest first
+              }}
             />
           </Box>
         ) : (
@@ -254,6 +310,8 @@ function PendingOrdersPage() {
             No pending orders available
           </Typography>
         )}
+
+        {/* Modal for selecting delivery person */}
         <Modal open={openModal} onClose={() => setOpenModal(false)}>
           <Box
             sx={{
@@ -277,7 +335,7 @@ function PendingOrdersPage() {
                 labelId="delivery-person-label"
                 value={deliveryPersonId}
                 onChange={(e) => {
-                  console.log("Selected personId:", e.target.value); // debug
+                  console.log('Selected personId:', e.target.value);
                   setDeliveryPersonId(e.target.value);
                 }}
               >

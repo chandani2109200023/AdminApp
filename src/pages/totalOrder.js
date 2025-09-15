@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Box, CardContent } from '@mui/material';
+import { Container, Typography, Box, CardContent,Button } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 
 const TotalOrderPage = () => {
@@ -17,30 +17,32 @@ const TotalOrderPage = () => {
         }
 
         console.log('Fetched all orders:', result.data);
-        const formattedOrders = result.data.map(order => ({
-          orderId: order.orderId || `N/A-${Math.random()}`,
-          status: order.status || 'N/A',
-          amount: order.amount || 0,
-          userId: order.address?.userId || 'N/A',
-          userName: order.address?.fullName || 'N/A',
-          userPhoneNumber: order.address?.phoneNumber || 'N/A',
-          state: order.address?.state || 'N/A',
-          pincode: order.address?.pincode || 'N/A',
-          houseDetails: order.address?.houseDetails || 'N/A',
-          roadDetails: order.address?.roadDetails || 'N/A',
-          deliveryPersonId: order.deliveryPerson?.id || 'N/A',
-          deliveryPersonName: order.deliveryPerson?.name || 'N/A',
-          deliveryPersonPhone: order.deliveryPerson?.phone || 'N/A',
-          createdAt: order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A',
-
-          // ✅ Keep items array (with image, name, qty, unit)
-          items: order.items?.map(item => ({
-            name: item.name,
-            quantity: item.quantity,
-            unit: item.unit,
-            image: item.imageUrl, // make sure API sends image URL
-          })) || [],
-        }));
+        const formattedOrders = result.data.map((order) => {
+          const createdAtDate = order.createdAt ? new Date(order.createdAt) : null;
+          return {
+            orderId: order.orderId || `N/A-${Math.random()}`,
+            status: order.status || 'N/A',
+            amount: order.amount || 0,
+            userId: order.address?.userId || 'N/A',
+            userName: order.address?.fullName || 'N/A',
+            userPhoneNumber: order.address?.phoneNumber || 'N/A',
+            state: order.address?.state || 'N/A',
+            pincode: order.address?.pincode || 'N/A',
+            houseDetails: order.address?.houseDetails || 'N/A',
+            roadDetails: order.address?.roadDetails || 'N/A',
+            deliveryPersonId: order.deliveryPerson?.id || 'N/A',
+            deliveryPersonName: order.deliveryPerson?.name || 'N/A',
+            deliveryPersonPhone: order.deliveryPerson?.phone || 'N/A',
+            createdAt: createdAtDate ? createdAtDate.getTime() : null,
+            createdAtFormatted: createdAtDate ? createdAtDate.toLocaleString() : 'N/A',
+            items: order.items?.map(item => ({
+              name: item.name,
+              quantity: item.quantity,
+              unit: item.unit,
+              image: item.imageUrl, // make sure API sends image URL
+            })) || [],
+          };
+        });
         console.log('Formatted Orders:', formattedOrders);
 
         // Update state with all orders
@@ -53,21 +55,52 @@ const TotalOrderPage = () => {
     fetchOrders();
   }, []);
   const columns = [
-    { field: 'orderId', headerName: 'Order ID', width: 250 },
-    { field: 'status', headerName: 'Status', width: 150 },
-    { field: 'amount', headerName: 'Amount (₹)', width: 150 },
-    { field: 'userId', headerName: 'User ID', width: 150 },
-    { field: 'userName', headerName: 'User Name', width: 200 },
-    { field: 'userPhoneNumber', headerName: 'User Phone Number', width: 180 },
-    { field: 'state', headerName: 'State', width: 150 },
-    { field: 'pincode', headerName: 'Pincode', width: 150 },
-    { field: 'houseDetails', headerName: 'House Details', width: 250 },
-    { field: 'roadDetails', headerName: 'Road Details', width: 250 },
-    { field: 'deliveryPersonId', headerName: 'Delivery Person ID', width: 180 },
-    { field: 'deliveryPersonName', headerName: 'Delivery Person Name', width: 200 },
-    { field: 'deliveryPersonPhone', headerName: 'Delivery Person Phone', width: 180 },
-    { field: 'createdAt', headerName: 'Created At', width: 200 },
-    // Add this column instead of your current items column
+    {
+      field: 'orderId',
+      headerName: 'Order ID',
+      width: 250,
+      sortable: true,
+      renderCell: (params) => (
+        <Button
+          variant="text"
+          color="primary"
+          onClick={() => {
+            // Open invoice in a new browser tab
+            window.open(`https://apii.agrivemart.com/api/invoice/${params.row.orderId}`, '_blank');
+          }}
+        >
+          {params.value}
+        </Button>
+      ),
+    },
+    { field: 'status', headerName: 'Status', width: 150, sortable: true, },
+    { field: 'amount', headerName: 'Amount (₹)', width: 150, sortable: true, },
+    { field: 'userId', headerName: 'User ID', width: 150, sortable: true, },
+    { field: 'userName', headerName: 'User Name', width: 200, sortable: true, },
+    { field: 'userPhoneNumber', headerName: 'User Phone Number', width: 180, sortable: true },
+    { field: 'state', headerName: 'State', width: 150, sortable: true },
+    { field: 'pincode', headerName: 'Pincode', width: 150, sortable: true },
+    { field: 'houseDetails', headerName: 'House Details', width: 250, sortable: true },
+    { field: 'roadDetails', headerName: 'Road Details', width: 250, sortable: true },
+    { field: 'deliveryPersonId', headerName: 'Delivery Person ID', width: 180, sortable: true },
+    { field: 'deliveryPersonName', headerName: 'Delivery Person Name', width: 200, sortable: true },
+    { field: 'deliveryPersonPhone', headerName: 'Delivery Person Phone', width: 180, sortable: true },
+    {
+      field: "createdAt",
+      headerName: "Created At",
+      width: 200,
+      hide: true,
+      valueFormatter: (params) => {
+        if (!params.value) return "N/A";
+        return new Date(Number(params.value)).toLocaleString();
+      },
+      sortComparator: (v1, v2) => v1 - v2, // still numeric
+    },
+    {
+      field: "createdAtFormatted",
+      headerName: "Date",
+      width: 200,
+    },
     {
       field: 'items',
       headerName: 'Items',
@@ -88,7 +121,7 @@ const TotalOrderPage = () => {
               overflowY: 'auto', // ✅ scroll if too many items
               width: '100%',
               pr: 1,
-              pb: 1, 
+              pb: 1,
             }}
           >
             {items.map((item, index) => (
@@ -165,13 +198,16 @@ const TotalOrderPage = () => {
               rows={orders}
               columns={columns}
               pageSize={5}
-              getRowHeight={() => 'auto'} 
+              getRowHeight={() => 'auto'}
               getRowId={(row) => row.orderId} // Ensure row ID is correctly set
               sx={{
                 backgroundColor: '#90B0CA',
                 color: '#1C2833',
                 '.MuiDataGrid-columnHeaders': { backgroundColor: '#1F618D' },
                 '.MuiDataGrid-footerContainer': { backgroundColor: '#1F618D' },
+              }}
+              initialState={{
+                sorting: { sortModel: [{ field: 'createdAt', sort: 'desc' }] }, // ✅ newest first
               }}
             />
           </Box>

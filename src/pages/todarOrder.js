@@ -57,15 +57,8 @@ function TodayOrdersPage() {
           deliveryPersonId: order.deliveryPerson?.id || '',
           deliveryPersonName: order.deliveryPerson?.name || 'N/A',
           deliveryPersonPhone: order.deliveryPerson?.phone || 'N/A',
-
-          // ✅ keep raw ISO for sorting
-          createdAt: createdAtDate ? createdAtDate.toISOString() : null,
-
-          // ✅ formatted string for UI
-          createdAtFormatted: createdAtDate
-            ? createdAtDate.toLocaleString()
-            : 'N/A',
-
+          createdAt: createdAtDate ? createdAtDate.getTime() : null,
+          createdAtFormatted: createdAtDate ? createdAtDate.toLocaleString() : 'N/A',
           items:
             order.items?.map(item => ({
               name: item.name,
@@ -170,19 +163,18 @@ function TodayOrdersPage() {
     {
       field: 'orderId',
       headerName: 'Order ID',
-      width: 200,
+      width: 250,
       sortable: true,
-      renderCell: params => (
+      renderCell: (params) => (
         <Button
+          variant="text"
           color="primary"
-          onClick={() =>
-            window.open(
-              `/invoice/${encodeURIComponent(JSON.stringify(params.row))}`,
-              '_blank'
-            )
-          }
+          onClick={() => {
+            // Open invoice in a new browser tab
+            window.open(`https://apii.agrivemart.com/api/invoice/${params.row.orderId}`, '_blank');
+          }}
         >
-          {params.row.orderId}
+          {params.value}
         </Button>
       ),
     },
@@ -200,17 +192,22 @@ function TodayOrdersPage() {
       headerName: 'Delivery Person Phone',
       width: 200,
     },
-   {
-  field: "createdAt",
-  headerName: "Created At",
-  width: 200,
-  valueFormatter: (params) => {
-    if (!params.value) return "N/A";
-    const date = new Date(params.value);
-    return date.toLocaleString(); // display readable
-  },
-  sortComparator: (v1, v2) => new Date(v1) - new Date(v2), // ensure correct sorting
-},
+    {
+      field: " createdAt",
+      headerName: "Created At",
+      width: 200,
+      valueFormatter: (params) => {
+        if (!params.value) return "N/A";
+        const date = new Date(params.value);
+        return date.toLocaleString(); // display readable
+      },
+      sortComparator: (v1, v2) => new Date(v1) - new Date(v2), // ensure correct sorting
+    },
+    {
+      field: "createdAtFormatted",
+      headerName: "Date",
+      width: 200,
+    },
     {
       field: 'items',
       headerName: 'Items',
